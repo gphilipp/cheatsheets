@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apache Flink Release History</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --neu-blue:   #0056F9;
+    --polar:      #009FFF;
+    --glow:       #00EB92;
+    --charcoal:   #1E1E1E;
+    --snow:       #FAFAFA;
+    --slate:      #767676;
+    --flink-pink: #E6526F;
+    --flink-pink-dark: #B83853;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--charcoal);
+    color: var(--snow);
+    min-height: 100vh;
+    padding: 0 0 64px;
+  }
+
+  /* Header */
+  header {
+    background: linear-gradient(90deg, var(--flink-pink-dark), var(--flink-pink));
+    padding: 28px 40px 22px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 2px;
+    background: var(--glow);
+  }
+  .header-logo {
+    height: 52px;
+    width: auto;
+    max-width: 200px;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
+  .header-text { flex: 1; min-width: 0; }
+  .header-back {
+    display: inline-block;
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    margin-bottom: 4px;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, transform 0.15s;
+  }
+  .header-back:hover { color: #fff; transform: translateX(-2px); }
+  .header-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+  .header-title span { font-weight: 400; opacity: 0.9; }
+  .header-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  /* Timeline */
+  .timeline {
+    max-width: 900px;
+    margin: 32px auto 0;
+    padding: 0 40px;
+    position: relative;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 16px;
+    bottom: 16px;
+    left: 50px;
+    width: 1px;
+    background: rgba(230,82,111,0.18);
+  }
+  .release {
+    position: relative;
+    padding: 0 0 28px 80px;
+  }
+  .release::before {
+    content: '';
+    position: absolute;
+    left: 45px;
+    top: 14px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--charcoal);
+    border: 2px solid var(--flink-pink);
+  }
+  .release.major::before {
+    background: var(--flink-pink);
+    box-shadow: 0 0 0 4px rgba(230,82,111,0.18);
+  }
+  .release-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+  .release-version {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--flink-pink);
+  }
+  .release.major .release-version { font-size: 24px; }
+  .release-date {
+    font-size: 11px;
+    color: var(--slate);
+    letter-spacing: 0.04em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .release-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(230,82,111,0.18);
+    color: var(--flink-pink);
+    border: 1px solid rgba(230,82,111,0.3);
+  }
+  .release ul {
+    list-style: none;
+    display: grid;
+    gap: 6px;
+  }
+  .release li {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #ccc;
+    padding-left: 14px;
+    position: relative;
+  }
+  .release li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 9px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(230,82,111,0.5);
+  }
+  .release li strong { color: var(--snow); font-weight: 500; }
+  .release li code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,0.06);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #e6e6e6;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .release a.proposal {
+    text-decoration: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    border-bottom: 1px dotted currentColor;
+    transition: color 0.15s, opacity 0.15s;
+    opacity: 0.9;
+  }
+  .release a.proposal:hover { opacity: 1; }
+  .release.forecast::before {
+    background: transparent;
+    border-style: dashed;
+    border-color: #FFDC00;
+    box-shadow: none;
+  }
+  .release.forecast .release-version { color: #ffe566; opacity: 0.9; }
+  .release.forecast .release-badge {
+    background: rgba(255,220,0,0.18);
+    color: #ffe566;
+    border: 1px solid rgba(255,220,0,0.4);
+  }
+  .release.forecast li::before { background: rgba(255,220,0,0.55); }
+  .forecast-caveat {
+    font-size: 11px;
+    font-style: italic;
+    color: #888;
+    margin-bottom: 12px;
+    line-height: 1.55;
+    padding: 8px 12px;
+    border-left: 2px solid rgba(255,220,0,0.4);
+    background: rgba(255,220,0,0.04);
+    border-radius: 3px;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--slate);
+    font-size: 11px;
+    margin-top: 48px;
+    padding: 0 24px;
+  }
+
+  @media (max-width: 720px) {
+    header { padding: 20px; }
+    .timeline { padding: 0 20px; }
+    .timeline::before { left: 24px; }
+    .release { padding-left: 50px; }
+    .release::before { left: 19px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img class="header-logo" src="../shared/logos/flink.svg" alt="Apache Flink logo">
+  <div class="header-text">
+    <a class="header-back" href="./">← Back to Flink cheatsheet</a>
+    <div class="header-title">Apache Flink<sup style="font-size:14px;opacity:0.7;margin-left:2px;">®</sup> <span>Release history</span></div>
+    <div class="header-sub">Major releases since 0.6, latest first - significant features only</div>
+  </div>
+</header>
+
+<section class="timeline">
+
+  <article class="release forecast">
+    <div class="release-head">
+      <span class="release-version">2.2.0 ?</span>
+      <span class="release-date">expected H2 2026</span>
+      <span class="release-badge">Forecast</span>
+    </div>
+    <p class="forecast-caveat">Drawn from active FLIPs and public community discussion. Not a commitment - scope can shift, slip, or be cut between now and the actual release.</p>
+    <ul>
+      <li><strong>Materialized Tables GA hardening</strong> - production-grade refresh scheduler, observability, schema-evolution flows</li>
+      <li><strong>ForSt state backend</strong> evolution - more checkpointing modes, faster restore on rescale</li>
+      <li>Further <strong>disaggregated state</strong> work (<a class="proposal" href="https://cwiki.apache.org/confluence/display/FLINK/FLIP-423%3A+Disaggregated+State+Management" target="_blank" rel="noopener">FLIP-423</a> follow-ups) for cloud-native deployments</li>
+      <li>Adaptive batch scheduler + speculative execution refinements</li>
+      <li>Java 21 support; Java 11 minimum to be removed</li>
+      <li>More streaming-SQL operator improvements: better changelog reasoning, EXPLAIN diagnostics</li>
+      <li>PyFlink: closer feature parity with Java APIs, performance work</li>
+      <li>Removal of remaining deprecated APIs (legacy SinkFunction, older state APIs)</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">2.1.0</span>
+      <span class="release-date">2026-04</span>
+      <span class="release-badge">Latest</span>
+    </div>
+    <ul>
+      <li><strong>Delta join</strong> - planner-selected join that replaces large state with bidirectional source lookups for CDC-style joins</li>
+      <li>Improved adaptive batch scheduler with dynamic parallelism inference</li>
+      <li>SQL Gateway materialised-table scheduler refinements</li>
+      <li>ForSt state backend hardening for object-storage-backed jobs</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">2.0.0</span>
+      <span class="release-date">2025-03</span>
+      <span class="release-badge">Major</span>
+    </div>
+    <ul>
+      <li><strong>API cleanup</strong> - removal of long-deprecated <code>DataSet</code> API, Scala APIs, and legacy SourceFunction</li>
+      <li><strong>ForSt</strong> distributed state backend - state stored on remote object storage instead of local RocksDB</li>
+      <li>Disaggregated state architecture (<a class="proposal" href="https://cwiki.apache.org/confluence/display/FLINK/FLIP-423%3A+Disaggregated+State+Management" target="_blank" rel="noopener">FLIP-423</a>) for cloud-native deployments</li>
+      <li>Materialized Tables become first-class with managed refresh lifecycle</li>
+      <li>Java 8 support dropped (Java 11 remains the minimum, Java 17 fully supported)</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.20.0</span>
+      <span class="release-date">2024-08</span>
+    </div>
+    <ul>
+      <li><strong>Materialized Tables (preview)</strong> - declarative SQL tables with managed refresh</li>
+      <li>Full job restart from a savepoint without restoring state (clean re-bootstrap)</li>
+      <li>Adaptive batch scheduler improvements; dynamic graph optimisation</li>
+      <li>Unified state API consolidation across DataStream / Table / SQL</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.19.0</span>
+      <span class="release-date">2024-03</span>
+    </div>
+    <ul>
+      <li>Dynamic source parallelism inference for batch jobs</li>
+      <li>Configurable source-sink table options at runtime</li>
+      <li>Trace and metric reporting standardisation</li>
+      <li>Deprecation of legacy SinkFunction in favour of the Sink V2 API</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.18.0</span>
+      <span class="release-date">2023-10</span>
+    </div>
+    <ul>
+      <li>Generic incremental file compaction in the streaming file sink</li>
+      <li><strong>SQL Gateway REST endpoint</strong> stabilised; JDBC driver for Flink SQL</li>
+      <li>Java 17 support (preview)</li>
+      <li>Watermark alignment GA for sources</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.17.0</span>
+      <span class="release-date">2023-03</span>
+    </div>
+    <ul>
+      <li><strong>Speculative execution</strong> for batch jobs to mitigate stragglers</li>
+      <li>Watermark alignment across split sources</li>
+      <li>STATEMENT SET multi-sink statements in SQL</li>
+      <li>Generic incremental checkpoints for non-RocksDB backends</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.16.0</span>
+      <span class="release-date">2022-10</span>
+    </div>
+    <ul>
+      <li><strong>Adaptive batch scheduler GA</strong> - automatic parallelism per stage</li>
+      <li>Hybrid shuffle - blocking shuffle that can spill to disk</li>
+      <li>Async lookup-join cache, retryable lookup mechanism</li>
+      <li>PyFlink performance and feature parity improvements</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.15.0</span>
+      <span class="release-date">2022-05</span>
+    </div>
+    <ul>
+      <li><strong>Pulsar source</strong> and unified Kafka Source / Sink (<a class="proposal" href="https://cwiki.apache.org/confluence/display/FLINK/FLIP-27%3A+Refactor+Source+Interface" target="_blank" rel="noopener">FLIP-27</a> / <a class="proposal" href="https://cwiki.apache.org/confluence/display/FLINK/FLIP-191%3A+Extend+unified+Sink+interface+to+support+small+file+compaction" target="_blank" rel="noopener">FLIP-191</a>)</li>
+      <li>JSON / Avro format improvements; CSV support enhanced</li>
+      <li>Operator finished state for upgrades</li>
+      <li>Scala-free runtime (Scala isolated to user jars)</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.14.0</span>
+      <span class="release-date">2021-09</span>
+    </div>
+    <ul>
+      <li><strong>Hybrid source</strong> - read bounded historical data then switch to unbounded streaming</li>
+      <li>Buffer debloating for backpressure relief</li>
+      <li>Fine-grained resource management for SlotSharingGroups</li>
+      <li>Pluggable scheduler interface</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.13.0</span>
+      <span class="release-date">2021-05</span>
+    </div>
+    <ul>
+      <li><strong>Reactive scaling mode</strong> - cluster auto-scales by adding/removing TaskManagers</li>
+      <li>Passive deployment mode</li>
+      <li>SQL improvements: window TVFs, batch in SQL CLI</li>
+      <li>Bottleneck detection in the web UI</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.12.0</span>
+      <span class="release-date">2020-12</span>
+    </div>
+    <ul>
+      <li><strong>DataStream API unification</strong> for batch and streaming (BATCH execution mode)</li>
+      <li>PyFlink DataStream API</li>
+      <li>Native Kubernetes HA without ZooKeeper</li>
+      <li>Upsert Kafka connector for retract/upsert streams</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.11.0</span>
+      <span class="release-date">2020-07</span>
+    </div>
+    <ul>
+      <li><strong>New source/sink interface (<a class="proposal" href="https://cwiki.apache.org/confluence/display/FLINK/FLIP-27%3A+Refactor+Source+Interface" target="_blank" rel="noopener">FLIP-27</a>)</strong> - unified bounded + unbounded sources</li>
+      <li>Flink SQL DDL improvements (CREATE TABLE WITH connector options)</li>
+      <li>Hive integration GA, Hive catalog stable</li>
+      <li>Application mode for cluster-per-job deployment</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.10.0</span>
+      <span class="release-date">2020-02</span>
+    </div>
+    <ul>
+      <li><strong>Blink SQL planner merged</strong> - more capable optimiser, becomes default in 1.11</li>
+      <li>Native Kubernetes integration</li>
+      <li>Fully managed memory model for TaskManager</li>
+      <li>Python UDFs in Flink SQL</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.9.0</span>
+      <span class="release-date">2019-08</span>
+    </div>
+    <ul>
+      <li>Redesigned web UI</li>
+      <li>Blink SQL planner contributed by Alibaba (preview)</li>
+      <li>State Processor API for batch reads/writes of savepoints</li>
+      <li>Batch shuffle service improvements</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.8.0</span>
+      <span class="release-date">2019-04</span>
+    </div>
+    <ul>
+      <li><strong>State schema evolution</strong> for POJOs and Avro</li>
+      <li>Continuous cleanup of expired keyed state in RocksDB</li>
+      <li>Universal Kafka connector for 1.x and 2.x brokers</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.7.0</span>
+      <span class="release-date">2018-11</span>
+    </div>
+    <ul>
+      <li><strong>Streaming SQL</strong> with temporal joins, CEP via <code>MATCH_RECOGNIZE</code></li>
+      <li>S3 StreamingFileSink with exactly-once</li>
+      <li>Versioned state schema serializers</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.6.0</span>
+      <span class="release-date">2018-08</span>
+    </div>
+    <ul>
+      <li><strong>State TTL</strong> - per-state expiry with configurable cleanup</li>
+      <li>Jar management REST API</li>
+      <li>FlinkCEP improvements; PatternProcessFunction</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.5.0</span>
+      <span class="release-date">2018-05</span>
+    </div>
+    <ul>
+      <li><strong><a class="proposal" href="https://cwiki.apache.org/confluence/display/FLINK/FLIP-6+-+Flink+Deployment+and+Process+Model+-+Standalone%2C+Yarn%2C+Mesos%2C+Kubernetes%2C+etc." target="_blank" rel="noopener">FLIP-6</a> deployment</strong> - per-job and session cluster modes redesign</li>
+      <li>New REST API for cluster management</li>
+      <li>Network stack rewrite with credit-based flow control</li>
+      <li>Broadcast state pattern</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.4.0</span>
+      <span class="release-date">2017-12</span>
+    </div>
+    <ul>
+      <li><strong>End-to-end exactly-once</strong> with Kafka 0.11 transactional sink</li>
+      <li>TwoPhaseCommitSinkFunction for transactional sinks</li>
+      <li>Hadoop-free Flink distribution</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.3.0</span>
+      <span class="release-date">2017-06</span>
+    </div>
+    <ul>
+      <li><strong>Side outputs</strong> for late data and multi-way splitting</li>
+      <li>Rescaling history in savepoints</li>
+      <li>Async I/O operator for non-blocking external lookups</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.2.0</span>
+      <span class="release-date">2017-02</span>
+    </div>
+    <ul>
+      <li><strong>Dynamic scaling</strong> through savepoints with rescaled parallelism</li>
+      <li>Queryable state (preview) for external state lookups</li>
+      <li>ProcessFunction with timers</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.1.0</span>
+      <span class="release-date">2016-08</span>
+    </div>
+    <ul>
+      <li><strong>Rescalable state</strong> - state can be redistributed across parallel instances</li>
+      <li>Library improvements: Gelly graph, FlinkML, FlinkCEP</li>
+      <li>Connectors for Kinesis, Cassandra, ElasticSearch</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">1.0.0</span>
+      <span class="release-date">2016-03</span>
+      <span class="release-badge">Major</span>
+    </div>
+    <ul>
+      <li><strong>API stability</strong> guarantee - DataStream / DataSet APIs frozen</li>
+      <li>At-least-once Kafka 0.9 connector with offset checkpoints (end-to-end exactly-once arrives later in 1.4 with Kafka 0.11 transactions)</li>
+      <li>Out-of-core state via RocksDB backend</li>
+      <li>Web monitoring dashboard maturity</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.10.0</span>
+      <span class="release-date">2015-11</span>
+    </div>
+    <ul>
+      <li><strong>Event time and watermarks</strong> in the DataStream API</li>
+      <li>Kafka 0.9 connector with offset checkpoints</li>
+      <li>Side outputs and timer service foundations</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.9.0</span>
+      <span class="release-date">2015-06</span>
+    </div>
+    <ul>
+      <li>Off-heap managed memory for the runtime</li>
+      <li>Table API (preview) - relational queries on DataStream/DataSet</li>
+      <li>Streaming connectors for Kafka, RabbitMQ, Twitter, Flume</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.8.0</span>
+      <span class="release-date">2015-01</span>
+    </div>
+    <ul>
+      <li>Improved type system with TypeInformation extractors</li>
+      <li>Hadoop 2.x integration</li>
+      <li>Iteration improvements (bulk and delta)</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.7.0</span>
+      <span class="release-date">2014-11</span>
+    </div>
+    <ul>
+      <li><strong>Streaming API</strong> introduced (continuous DataStream programs)</li>
+      <li>Scala API matures alongside Java</li>
+      <li>FlinkML and Gelly libraries seeded</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">0.6.0</span>
+      <span class="release-date">2014-08</span>
+      <span class="release-badge">First</span>
+    </div>
+    <ul>
+      <li>First release under the Apache Flink name (formerly Stratosphere)</li>
+      <li>Batch DataSet API with optimiser and cost-based execution</li>
+      <li>Initial cluster manager support (Standalone, YARN)</li>
+    </ul>
+  </article>
+
+</section>
+
+<footer>
+  Apache Flink<sup>®</sup>, Flink<sup>®</sup>, and the Apache feather logo are registered trademarks of The Apache Software Foundation.
+  Dates and version numbers are approximations; see <a href="https://nightlies.apache.org/flink/flink-docs-stable/release-notes/" style="color:#7ab8ff;">official release notes</a> for authoritative details.
+</footer>
+
+</body>
+</html>

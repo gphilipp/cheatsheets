@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apache Kafka Release History</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --neu-blue: #0056F9;
+    --polar:    #009FFF;
+    --glow:     #00EB92;
+    --charcoal: #1E1E1E;
+    --snow:     #FAFAFA;
+    --slate:    #767676;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--charcoal);
+    color: var(--snow);
+    min-height: 100vh;
+    padding: 0 0 64px;
+  }
+
+  header {
+    background: linear-gradient(90deg, var(--neu-blue), var(--polar));
+    padding: 28px 40px 22px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 2px;
+    background: var(--glow);
+  }
+  .header-logo {
+    height: 52px;
+    width: auto;
+    max-width: 180px;
+    flex-shrink: 0;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+  .header-text { flex: 1; min-width: 0; }
+  .header-back {
+    display: inline-block;
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    margin-bottom: 4px;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, transform 0.15s;
+  }
+  .header-back:hover { color: #fff; transform: translateX(-2px); }
+  .header-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+  .header-title span { font-weight: 400; opacity: 0.9; }
+  .header-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  .timeline {
+    max-width: 900px;
+    margin: 32px auto 0;
+    padding: 0 40px;
+    position: relative;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 16px;
+    bottom: 16px;
+    left: 50px;
+    width: 1px;
+    background: rgba(0,86,249,0.2);
+  }
+  .release {
+    position: relative;
+    padding: 0 0 28px 80px;
+  }
+  .release::before {
+    content: '';
+    position: absolute;
+    left: 45px;
+    top: 14px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--charcoal);
+    border: 2px solid var(--neu-blue);
+  }
+  .release.major::before {
+    background: var(--neu-blue);
+    box-shadow: 0 0 0 4px rgba(0,86,249,0.2);
+  }
+  .release-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+  .release-version {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    color: #7ab8ff;
+  }
+  .release.major .release-version { font-size: 24px; }
+  .release-date {
+    font-size: 11px;
+    color: var(--slate);
+    letter-spacing: 0.04em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .release-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(0,86,249,0.2);
+    color: #7ab8ff;
+    border: 1px solid rgba(0,86,249,0.4);
+  }
+  .release ul {
+    list-style: none;
+    display: grid;
+    gap: 6px;
+  }
+  .release li {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #ccc;
+    padding-left: 14px;
+    position: relative;
+  }
+  .release li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 9px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(0,86,249,0.55);
+  }
+  .release li strong { color: var(--snow); font-weight: 500; }
+  .release li code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,0.06);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #e6e6e6;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .release a.proposal {
+    text-decoration: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    border-bottom: 1px dotted currentColor;
+    transition: color 0.15s, opacity 0.15s;
+    opacity: 0.9;
+  }
+  .release a.proposal:hover { opacity: 1; }
+  .release.forecast::before {
+    background: transparent;
+    border-style: dashed;
+    border-color: #FFDC00;
+    box-shadow: none;
+  }
+  .release.forecast .release-version { color: #ffe566; opacity: 0.9; }
+  .release.forecast .release-badge {
+    background: rgba(255,220,0,0.18);
+    color: #ffe566;
+    border: 1px solid rgba(255,220,0,0.4);
+  }
+  .release.forecast li::before { background: rgba(255,220,0,0.55); }
+  .forecast-caveat {
+    font-size: 11px;
+    font-style: italic;
+    color: #888;
+    margin-bottom: 12px;
+    line-height: 1.55;
+    padding: 8px 12px;
+    border-left: 2px solid rgba(255,220,0,0.4);
+    background: rgba(255,220,0,0.04);
+    border-radius: 3px;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--slate);
+    font-size: 11px;
+    margin-top: 48px;
+    padding: 0 24px;
+  }
+
+  @media (max-width: 720px) {
+    header { padding: 20px; }
+    .timeline { padding: 0 20px; }
+    .timeline::before { left: 24px; }
+    .release { padding-left: 50px; }
+    .release::before { left: 19px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img class="header-logo" src="../shared/logos/kafka.svg" alt="Apache Kafka logo">
+  <div class="header-text">
+    <a class="header-back" href="./">← Back to Kafka cheatsheet</a>
+    <div class="header-title">Apache Kafka<sup style="font-size:14px;opacity:0.7;margin-left:2px;">®</sup> <span>Release history</span></div>
+    <div class="header-sub">Major releases since 0.7, latest first - significant features only</div>
+  </div>
+</header>
+
+<section class="timeline">
+
+  <article class="release forecast">
+    <div class="release-head">
+      <span class="release-version">4.2.0 ?</span>
+      <span class="release-date">expected H2 2026</span>
+      <span class="release-badge">Forecast</span>
+    </div>
+    <p class="forecast-caveat">Drawn from active KIPs and public community discussion. Not a commitment - scope can shift, slip, or be cut between now and the actual release.</p>
+    <ul>
+      <li><strong><a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-1150%3A+Diskless+Topics" target="_blank" rel="noopener">KIP-1150</a> Diskless Kafka</strong> (preview) - brokers using object storage (S3/GCS/ADLS) as primary storage</li>
+      <li>Share groups post-GA hardening: better metrics, stronger delivery semantics</li>
+      <li>New consumer group protocol (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/The+Next+Generation+of+the+Consumer+Rebalance+Protocol" target="_blank" rel="noopener">KIP-848</a>) becomes the default for new groups</li>
+      <li>Transactional protocol V2 stabilisation; tighter exactly-once guarantees</li>
+      <li>Tiered storage: broader filesystem plugin support, faster catch-up</li>
+      <li>KRaft observability and dynamic quorum reconfiguration improvements</li>
+      <li>Streams: incremental upgrades to the foreign-key join engine</li>
+      <li>Connect: improved exactly-once for sink connectors</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">4.1.0</span>
+      <span class="release-date">2026-04</span>
+      <span class="release-badge">Latest</span>
+    </div>
+    <ul>
+      <li><strong>Share groups GA</strong> (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-932%3A+Queues+for+Kafka" target="_blank" rel="noopener">KIP-932</a>) - queue semantics over Kafka topics, multiple consumers can read from the same partition concurrently</li>
+      <li>KRaft hardening: faster failover, larger metadata caps</li>
+      <li>Streams: improved foreign-key joins, simplified topology builder</li>
+      <li>Stronger transactional guarantees for two-phase commits</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">4.0.0</span>
+      <span class="release-date">2025-03</span>
+      <span class="release-badge">Major</span>
+    </div>
+    <ul>
+      <li><strong>ZooKeeper removed</strong> - KRaft is the only supported metadata mode</li>
+      <li>Share groups (preview) for queue-like consumption</li>
+      <li>New consumer group protocol (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/The+Next+Generation+of+the+Consumer+Rebalance+Protocol" target="_blank" rel="noopener">KIP-848</a>) GA - server-side rebalancing</li>
+      <li>Brokers, Connect, Streams and admin tools require Java 17; clients (producer/consumer) keep Java 11 as the minimum</li>
+      <li>Scala 2.12 support dropped - Scala 2.13 only</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">3.9.0</span>
+      <span class="release-date">2024-11</span>
+    </div>
+    <ul>
+      <li><strong>ZK-to-KRaft migration tools</strong> finalised; rolling migrations supported</li>
+      <li>Dynamic KRaft quorum reconfiguration</li>
+      <li>Connect: pluggable config providers for secret management</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">3.8.0</span>
+      <span class="release-date">2024-07</span>
+    </div>
+    <ul>
+      <li>Tiered storage hardening; production-quality plugin SPI</li>
+      <li>JBOD support with KRaft</li>
+      <li>Consumer group protocol (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/The+Next+Generation+of+the+Consumer+Rebalance+Protocol" target="_blank" rel="noopener">KIP-848</a>) preview improvements</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">3.7.0</span>
+      <span class="release-date">2024-02</span>
+    </div>
+    <ul>
+      <li><strong>Tiered storage (Early Access)</strong> - offload old segments to S3/HDFS/GCS</li>
+      <li>Next-gen consumer group protocol (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/The+Next+Generation+of+the+Consumer+Rebalance+Protocol" target="_blank" rel="noopener">KIP-848</a>) preview</li>
+      <li>Client telemetry collection (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-714%3A+Client+metrics+and+observability" target="_blank" rel="noopener">KIP-714</a>)</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">3.6.0</span>
+      <span class="release-date">2023-10</span>
+    </div>
+    <ul>
+      <li>Tiered storage preview (server side)</li>
+      <li>ZK-to-KRaft migration enters production-ready phase</li>
+      <li>Connect: cooperative rebalance default</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">3.5.0</span>
+      <span class="release-date">2023-06</span>
+    </div>
+    <ul>
+      <li>Producer cooperative rebalance (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/The+Next+Generation+of+the+Consumer+Rebalance+Protocol" target="_blank" rel="noopener">KIP-848</a> foundations)</li>
+      <li>Connect: exactly-once source connectors maturity</li>
+      <li>Streams: emit-on-change in suppress operator</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">3.4.0</span>
+      <span class="release-date">2023-02</span>
+    </div>
+    <ul>
+      <li><strong>KRaft GA for new clusters</strong></li>
+      <li>Transactional state stores in Kafka Streams</li>
+      <li>Server-side fetch from closest replica</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">3.3.0</span>
+      <span class="release-date">2022-10</span>
+    </div>
+    <ul>
+      <li><strong>KRaft mode marked production-ready</strong> (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-833%3A+Mark+KRaft+as+Production+Ready" target="_blank" rel="noopener">KIP-833</a>)</li>
+      <li><a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-405%3A+Kafka+Tiered+Storage" target="_blank" rel="noopener">KIP-405</a> design for tiered storage finalised</li>
+      <li>Streams: emit-final for suppress, exactly-once V2</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">3.2.0</span>
+      <span class="release-date">2022-05</span>
+    </div>
+    <ul>
+      <li>Log4j 2 migration (KIP-653)</li>
+      <li>Interactive Queries v2 in Kafka Streams (KIP-806)</li>
+      <li>Configurable client telemetry and tracing hooks</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">3.1.0</span>
+      <span class="release-date">2022-01</span>
+    </div>
+    <ul>
+      <li>Connect: per-source-record headers</li>
+      <li>Streams: KStream-KStream join improvements</li>
+      <li>KRaft snapshot system improvements</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">3.0.0</span>
+      <span class="release-date">2021-09</span>
+      <span class="release-badge">Major</span>
+    </div>
+    <ul>
+      <li>Java 8 deprecated; clients and broker move toward Java 11</li>
+      <li>Producer: stronger delivery guarantees on by default</li>
+      <li>KRaft mode (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum" target="_blank" rel="noopener">KIP-500</a>) enters early access for new clusters</li>
+      <li>Removal of long-deprecated APIs</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">2.8.0</span>
+      <span class="release-date">2021-04</span>
+    </div>
+    <ul>
+      <li><strong>KRaft preview</strong> (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum" target="_blank" rel="noopener">KIP-500</a>) - run Kafka without ZooKeeper</li>
+      <li>Sliding window aggregations in Streams</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">2.7.0</span>
+      <span class="release-date">2020-12</span>
+    </div>
+    <ul>
+      <li>Core controller refactor preparing for KRaft</li>
+      <li>End-to-end latency metrics in Streams</li>
+      <li>Configurable TCP listener bind ordering</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">2.6.0</span>
+      <span class="release-date">2020-08</span>
+    </div>
+    <ul>
+      <li><strong>SASL/OAUTHBEARER</strong> with token refresh</li>
+      <li>Client-side throttling visibility</li>
+      <li>Smooth scaling of Kafka Streams with cooperative rebalancing</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">2.5.0</span>
+      <span class="release-date">2020-04</span>
+    </div>
+    <ul>
+      <li>Co-grouping in Kafka Streams</li>
+      <li>Improved broker observability metrics</li>
+      <li>Incremental rebalance protocol for the consumer (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-429%3A+Kafka+Consumer+Incremental+Rebalance+Protocol" target="_blank" rel="noopener">KIP-429</a>)</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">2.4.0</span>
+      <span class="release-date">2019-12</span>
+    </div>
+    <ul>
+      <li><strong>Foreign-key joins</strong> for KTables in Streams</li>
+      <li>Sticky partitioner for the producer</li>
+      <li>Allow consumers to fetch from the closest replica (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-392%3A+Allow+consumers+to+fetch+from+closest+replica" target="_blank" rel="noopener">KIP-392</a>)</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">2.3.0</span>
+      <span class="release-date">2019-06</span>
+    </div>
+    <ul>
+      <li>Connect REST API improvements; incremental cooperative rebalance</li>
+      <li>Static membership (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-345%3A+Introduce+static+membership+protocol+to+reduce+consumer+rebalances" target="_blank" rel="noopener">KIP-345</a>) - reduce rebalances on restart</li>
+      <li>Incremental fetch (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-392%3A+Allow+consumers+to+fetch+from+closest+replica" target="_blank" rel="noopener">KIP-392</a>) groundwork</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">2.2.0</span>
+      <span class="release-date">2019-03</span>
+    </div>
+    <ul>
+      <li>Default partition count for auto-create</li>
+      <li>Simplified consumer group reset tooling</li>
+      <li>Allow incremental fetch session limits</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">2.1.0</span>
+      <span class="release-date">2018-11</span>
+    </div>
+    <ul>
+      <li><strong>ZStandard compression</strong> support</li>
+      <li>Java 11 support for clients</li>
+      <li>OffsetsForTimes API improvements</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">2.0.0</span>
+      <span class="release-date">2018-07</span>
+      <span class="release-badge">Major</span>
+    </div>
+    <ul>
+      <li>Prefixed ACLs and resource-pattern-type filtering</li>
+      <li>Dynamic broker configurations</li>
+      <li>OAuth via SASL/OAUTHBEARER (preview)</li>
+      <li>Drop of Java 7 support</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.1.0</span>
+      <span class="release-date">2018-03</span>
+    </div>
+    <ul>
+      <li>JBOD support with failure-tolerant disk handling</li>
+      <li>Controller failover improvements</li>
+      <li>Connect: more flexible REST API</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">1.0.0</span>
+      <span class="release-date">2017-11</span>
+      <span class="release-badge">Major</span>
+    </div>
+    <ul>
+      <li>GA milestone for the entire Kafka stack (brokers + clients + Streams + Connect)</li>
+      <li>JBOD-friendly disk failure semantics</li>
+      <li>Quotas on bytes per second per client</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.11.0</span>
+      <span class="release-date">2017-06</span>
+    </div>
+    <ul>
+      <li><strong>Exactly-once semantics</strong> (<a class="proposal" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-98+-+Exactly+Once+Delivery+and+Transactional+Messaging" target="_blank" rel="noopener">KIP-98</a>) - transactional producer, read-committed consumer</li>
+      <li>Idempotent producer</li>
+      <li>Message format v2 with headers and improved compaction</li>
+      <li>Streams: exactly-once processing guarantees</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.10.0</span>
+      <span class="release-date">2016-05</span>
+    </div>
+    <ul>
+      <li><strong>Kafka Streams API</strong> - library for stream processing inside applications</li>
+      <li>Message timestamps in the record header</li>
+      <li>Rack-aware replica assignment</li>
+      <li>SASL/SCRAM authentication</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.9.0</span>
+      <span class="release-date">2015-11</span>
+    </div>
+    <ul>
+      <li><strong>Security</strong>: SASL/Kerberos, SSL/TLS, authorisation via ACLs</li>
+      <li>New consumer API (Java)</li>
+      <li><strong>Kafka Connect</strong> - framework for source/sink connectors</li>
+      <li>Quotas for client request rates</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.8.0</span>
+      <span class="release-date">2013-12</span>
+    </div>
+    <ul>
+      <li><strong>Intra-cluster replication</strong> - the breakthrough that made Kafka production-grade</li>
+      <li>High-level consumer with ZooKeeper-managed offsets</li>
+      <li>Log compaction (preview)</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">0.7.0</span>
+      <span class="release-date">2012-01</span>
+      <span class="release-badge">First</span>
+    </div>
+    <ul>
+      <li>First release under the Apache Software Foundation after donation from LinkedIn</li>
+      <li>Append-only commit log with topic/partition model</li>
+      <li>High-throughput pull-based consumer</li>
+    </ul>
+  </article>
+
+</section>
+
+<footer>
+  Apache Kafka<sup>®</sup>, Kafka<sup>®</sup>, and the Apache feather logo are registered trademarks of The Apache Software Foundation.
+  Dates and version numbers are approximations; see <a href="https://kafka.apache.org/downloads" style="color:#7ab8ff;">official release notes</a> for authoritative details.
+</footer>
+
+</body>
+</html>

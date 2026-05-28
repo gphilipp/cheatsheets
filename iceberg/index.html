@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apache Iceberg Cheatsheet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --neu-blue: #0056F9;
+    --polar:    #009FFF;
+    --glow:     #00EB92;
+    --charcoal: #1E1E1E;
+    --snow:     #FAFAFA;
+    --slate:    #767676;
+    --zest:     #FFDC00;
+    --sienna:   #FF7C52;
+    --sky:      #C9EDF0;
+    --indigo:   #1E21D0;
+    --violet:   #806CFF;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--charcoal);
+    color: var(--snow);
+    min-height: 100vh;
+    padding: 0 0 48px;
+  }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(90deg, var(--polar), var(--sky));
+    padding: 28px 40px 22px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .header-logo {
+    height: 52px;
+    width: auto;
+    max-width: 180px;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
+  .header-text { flex: 1; min-width: 0; }
+  .header-back {
+    display: inline-block;
+    font-size: 11px;
+    color: rgba(5,26,34,0.7);
+    text-decoration: none;
+    margin-bottom: 4px;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, transform 0.15s;
+  }
+  .header-back:hover { color: #051a22; transform: translateX(-2px); }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 2px;
+    background: var(--glow);
+  }
+  .header-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: #051a22;
+  }
+  .header-title span { font-weight: 400; opacity: 0.75; }
+  .header-sub {
+    font-size: 12px;
+    color: rgba(5,26,34,0.65);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 16px 40px 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ── Section card ── */
+  .section {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .section-header {
+    padding: 10px 14px 9px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-header .bar {
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Entry row ── */
+  .entry {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    padding: 7px 14px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.12s;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .entry:hover { background: rgba(255,255,255,0.06); }
+  .entry-term {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    width: 180px;
+    flex-shrink: 0;
+    padding-right: 10px;
+  }
+  .entry-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin: 0 10px;
+    position: relative;
+    top: -1px;
+    opacity: 0.7;
+  }
+  .entry-def {
+    font-size: 12px;
+    color: #aaa;
+    line-height: 1.5;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entry-hint {
+    font-size: 10px;
+    opacity: 0.3;
+    margin-left: 8px;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+  .entry:hover .entry-hint { opacity: 0.7; }
+
+  /* ── Popup tooltip ── */
+  .popup {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    width: 360px;
+    max-height: 75vh;
+    background: #111;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 0;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    pointer-events: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .popup::-webkit-scrollbar { width: 8px; }
+  .popup::-webkit-scrollbar-track { background: transparent; }
+  .popup::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  .popup::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+  .popup.visible { display: block; }
+  .popup-header {
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+    user-select: none;
+  }
+  .popup-controls {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .popup-btn {
+    background: transparent;
+    border: 0;
+    padding: 2px 7px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    border-radius: 3px;
+    line-height: 1;
+    font-family: inherit;
+    transition: color 0.15s, background 0.15s;
+  }
+  .popup-btn:hover { color: var(--snow); background: rgba(255,255,255,0.08); }
+  .popup-pin.active { color: var(--glow); }
+  .popup-close { display: none; }
+  .popup.docked .popup-close { display: inline-block; }
+  .popup .popup-header { cursor: grab; }
+  .popup.dragging .popup-header,
+  .popup.dragging { cursor: grabbing; user-select: none; }
+  .popup-header .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .popup-term {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--snow);
+  }
+  .popup-body { padding: 14px 16px 16px; }
+  .popup-section-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.4;
+    margin-bottom: 4px;
+  }
+  .popup-text {
+    font-size: 12px;
+    line-height: 1.65;
+    color: #ccc;
+    margin-bottom: 14px;
+  }
+  .popup-text:last-child { margin-bottom: 0; }
+  .popup-label-why { color: var(--glow); }
+  .popup-label-how { color: var(--polar); }
+  .popup-link {
+    display: none;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    font-size: 11px;
+    color: var(--polar);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .popup-link.visible { display: block; }
+  .popup-link::before { content: '↗ '; opacity: 0.7; }
+  .popup-link { cursor: pointer; }
+  .popup-link:hover { text-decoration: underline; }
+  .inline-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,0.07);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #e6e6e6;
+    border: 1px solid rgba(255,255,255,0.05);
+    white-space: nowrap;
+  }
+  .entry.has-link .entry-hint { color: var(--polar); opacity: 0.6; }
+  .entry.has-link:hover .entry-hint { opacity: 1; }
+
+  /* ── Section color themes ── */
+  .s-core    { background: #0a1e24; } .s-core    .section-header { background: #0d2830; color: var(--sky); }     .s-core    .bar, .s-core    .entry-dot { background: var(--sky); }     .s-core    .entry-term { color: #a0dfe8; }
+  .s-schema  { background: #0a1628; } .s-schema  .section-header { background: #0d1f3a; color: #4a9eff; }        .s-schema  .bar, .s-schema  .entry-dot { background: var(--neu-blue); } .s-schema  .entry-term { color: #7ab8ff; }
+  .s-write   { background: #1e1500; } .s-write   .section-header { background: #2a1e00; color: var(--zest); }    .s-write   .bar, .s-write   .entry-dot { background: var(--zest); }    .s-write   .entry-term { color: #ffe566; }
+  .s-time    { background: #130e24; } .s-time    .section-header { background: #1c1435; color: var(--violet); }  .s-time    .bar, .s-time    .entry-dot { background: var(--violet); }  .s-time    .entry-term { color: #b09dff; }
+  .s-maint   { background: #1e1008; } .s-maint   .section-header { background: #2a1810; color: var(--sienna); }  .s-maint   .bar, .s-maint   .entry-dot { background: var(--sienna); }  .s-maint   .entry-term { color: #ffb090; }
+  .s-cat     { background: #0a1f16; } .s-cat     .section-header { background: #0d2a1e; color: var(--glow); }    .s-cat     .bar, .s-cat     .entry-dot { background: var(--glow); }    .s-cat     .entry-term { color: #5dffc0; }
+  .s-perf    { background: #14140a; } .s-perf    .section-header { background: #1e1e10; color: #d4e84a; }        .s-perf    .bar, .s-perf    .entry-dot { background: #d4e84a; }        .s-perf    .entry-term { color: #e8f07a; }
+
+  /* ── Overview ── */
+  .overview {
+    max-width: 1200px;
+    margin: 24px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .overview-what {
+    background: #061a2a;
+    border: 1px solid rgba(0,159,255,0.25);
+    border-radius: 8px;
+    padding: 20px 22px;
+    border-left: 3px solid var(--polar);
+  }
+  .overview-fits {
+    background: #061a2a;
+    border: 1px solid rgba(0,159,255,0.25);
+    border-radius: 8px;
+    padding: 20px 22px;
+    border-left: 3px solid var(--polar);
+  }
+  .overview-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .overview-title .ot-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .overview-what .overview-title { color: var(--polar); }
+  .overview-what .ot-dot { background: var(--polar); }
+  .overview-fits .overview-title { color: var(--polar); }
+  .overview-fits .ot-dot { background: var(--polar); }
+
+  .overview-text {
+    font-size: 12px;
+    line-height: 1.7;
+    color: #aaa;
+  }
+  .overview-text strong { color: var(--snow); font-weight: 500; }
+
+  .fit-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px 12px;
+    margin-top: 2px;
+  }
+  .fit-list li {
+    font-size: 12px;
+    color: #aaa;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    line-height: 1.5;
+  }
+  .fit-list li::before {
+    content: '✓';
+    color: var(--polar);
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .fit-list li strong { color: var(--snow); font-weight: 500; }
+
+  .not-fit {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    font-size: 11px;
+    color: var(--slate);
+  }
+  .not-fit strong { color: var(--sienna); font-weight: 500; }
+  .migrate-from {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--slate);
+    line-height: 1.55;
+  }
+  .migrate-from strong { color: var(--polar); font-weight: 500; }
+
+  /* ── Project section ── */
+  .project {
+    max-width: 1200px;
+    margin: 16px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .project-card {
+    background: #061a2a;
+    border: 1px solid rgba(0,159,255,0.25);
+    border-radius: 8px;
+    padding: 18px 22px;
+    border-left: 3px solid var(--polar);
+  }
+  .project-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    color: var(--polar);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .project-title .pt-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--polar);
+    flex-shrink: 0;
+  }
+  .project-list {
+    list-style: none;
+    display: grid;
+    gap: 8px;
+  }
+  .project-list li {
+    display: flex;
+    align-items: baseline;
+    font-size: 12px;
+    gap: 12px;
+  }
+  .project-list .label {
+    color: #888;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    width: 92px;
+  }
+  .project-list a {
+    color: #ddd;
+    text-decoration: none;
+    border-bottom: 1px dotted rgba(255,255,255,0.18);
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .project-list a:hover { color: var(--polar); border-bottom-color: var(--polar); }
+  .project-versions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .project-versions-list code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px;
+    border-radius: 3px;
+    color: #ccc;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .project-versions-list code.latest {
+    background: rgba(0,159,255,0.18);
+    color: var(--polar);
+    border-color: rgba(0,159,255,0.4);
+    font-weight: 500;
+  }
+  .project-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 17px;
+    color: #fff;
+    font-weight: 500;
+    line-height: 1.1;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    color: var(--slate);
+    font-size: 11px;
+    margin-top: 32px;
+  }
+
+  @media (max-width: 780px) {
+    .grid { grid-template-columns: 1fr; padding: 16px; }
+    .overview { grid-template-columns: 1fr; padding: 16px; }
+    header { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img class="header-logo" src="../shared/logos/iceberg.svg" alt="Apache Iceberg logo">
+  <div class="header-text">
+    <a class="header-back" href="../">← All cheatsheets</a>
+    <div class="header-title">Apache Iceberg<sup style="font-size:14px;opacity:0.7;margin-left:2px;">™</sup> <span>Cheatsheet</span></div>
+    <div class="header-sub">Key concepts - hover any entry for details</div>
+  </div>
+</header>
+
+<div class="overview">
+  <div class="overview-what">
+    <div class="overview-title"><div class="ot-dot"></div>What is Apache Iceberg?</div>
+    <p class="overview-text">
+      <strong>Apache Iceberg</strong> is an open <strong>table format</strong> for huge analytic
+      datasets stored on object storage (S3, GCS, ADLS) or HDFS. It sits above the data files
+      (Parquet, ORC, Avro) and provides a transactional metadata layer that turns a pile of
+      immutable files into a real table with ACID semantics, schema evolution, and time travel.
+    </p>
+    <p class="overview-text" style="margin-top:9px">
+      Unlike Hive tables - which track partitions in a metastore and rely on directory listings -
+      Iceberg keeps an explicit, versioned tree of <strong>snapshots, manifests, and data files</strong>.
+      That lets any compliant engine (Spark, Flink, Trino, Snowflake, DuckDB) read and write the same
+      table safely, with predictable performance and no expensive directory scans.
+    </p>
+  </div>
+
+  <div class="overview-fits">
+    <div class="overview-title"><div class="ot-dot"></div>When Iceberg is the right fit</div>
+    <ul class="fit-list">
+      <li><span><strong>Open lakehouse</strong> - one table queryable from Spark, Flink, Trino, Snowflake, BigQuery without lock-in</span></li>
+      <li><span><strong>Multi-engine writes</strong> - safe concurrent ingestion from streaming and batch jobs into the same table</span></li>
+      <li><span><strong>Schema evolution</strong> - add, drop, rename columns without rewriting data or breaking old queries</span></li>
+      <li><span><strong>Time travel & audit</strong> - query any past snapshot for debugging, compliance, or reproducible ML training</span></li>
+      <li><span><strong>Row-level mutations</strong> - UPDATE, DELETE, MERGE in a data-lake setting (not just append-only)</span></li>
+      <li><span><strong>Streaming sinks</strong> - Flink/Spark Structured Streaming continuously commit small files; compaction tidies up</span></li>
+      <li><span><strong>Partition evolution</strong> - change how a table is partitioned without rewriting historical data</span></li>
+      <li><span><strong>Petabyte tables</strong> - efficient planning without listing directories; manifests prune at file granularity</span></li>
+    </ul>
+    <p class="not-fit"><strong>Less ideal for:</strong> OLTP / point-row lookups (use a database), sub-second query latency on small data (use a warehouse or in-memory engine), or tiny datasets where the metadata overhead is bigger than the data itself.</p>
+    <p class="migrate-from"><strong>Often replaces:</strong> Hive-managed Parquet/ORC tables, directory-layout-based Parquet datasets on S3/GCS/ADLS, and proprietary warehouse-only formats when an open, multi-engine table layer is wanted.</p>
+  </div>
+</div>
+
+<div class="project">
+  <div class="project-card">
+    <div class="project-title"><div class="pt-dot"></div>Project resources</div>
+    <ul class="project-list">
+      <li><span class="label">Code</span><a href="https://github.com/apache/iceberg" target="_blank" rel="noopener">github.com/apache/iceberg</a></li>
+      <li><span class="label">Docs</span><a href="https://iceberg.apache.org/docs/latest/" target="_blank" rel="noopener">iceberg.apache.org/docs</a></li>
+      <li><span class="label">Issues</span><a href="https://github.com/apache/iceberg/issues" target="_blank" rel="noopener">github.com/apache/iceberg/issues</a></li>
+      <li><span class="label">Community</span><a href="https://iceberg.apache.org/community/" target="_blank" rel="noopener">iceberg.apache.org/community</a></li>
+      <li><span class="label">Slack</span><a href="https://iceberg.apache.org/community/#slack" target="_blank" rel="noopener">apache-iceberg.slack.com</a></li>
+      <li><span class="label">Mailing list</span><a href="mailto:dev-subscribe@iceberg.apache.org">dev@iceberg.apache.org</a></li>
+      <li><span class="label">Stack Overflow</span><a href="https://stackoverflow.com/questions/tagged/apache-iceberg" target="_blank" rel="noopener">tag: apache-iceberg</a></li>
+    </ul>
+  </div>
+  <div class="project-card">
+    <div class="project-title"><div class="pt-dot"></div>Releases & stats</div>
+    <div class="project-versions-list">
+      <code class="latest">1.9.0</code>
+      <code>1.8.x</code>
+      <code>1.7.x</code>
+      <code>1.6.x</code>
+      <code>1.5.x</code>
+      <code>1.4.x</code>
+      <a href="./releases.html" style="font-size:11px;color:var(--polar);text-decoration:none;border-bottom:1px dotted rgba(0,159,255,0.5);align-self:center;">Full history →</a>
+    </div>
+    <div class="project-stats">
+      <div>
+        <div class="stat-value">1.9.0</div>
+        <div class="stat-label">Latest (Mar 2026)</div>
+      </div>
+      <div>
+        <div class="stat-value">~7k</div>
+        <div class="stat-label">GitHub stars</div>
+      </div>
+      <div>
+        <div class="stat-value">~580</div>
+        <div class="stat-label">Contributors</div>
+      </div>
+      <div>
+        <div class="stat-value">2020</div>
+        <div class="stat-label">ASF top-level since</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<footer>Apache Iceberg - iceberg.apache.org</footer>
+
+<div class="popup" id="popup">
+  <div class="popup-header">
+    <div class="dot" id="popup-dot"></div>
+    <div class="popup-term" id="popup-term"></div>
+    <div class="popup-controls">
+      <button class="popup-btn popup-pin" id="popup-pin" type="button" title="Dock popup" aria-label="Dock popup">⚲</button>
+      <button class="popup-btn popup-close" id="popup-close" type="button" title="Close" aria-label="Close">×</button>
+    </div>
+  </div>
+  <div class="popup-body">
+    <div class="popup-section-label">What it is</div>
+    <div class="popup-text" id="popup-desc"></div>
+    <div class="popup-section-label popup-label-why">Why it matters</div>
+    <div class="popup-text" id="popup-why"></div>
+    <div class="popup-section-label popup-label-how">How to use it</div>
+    <div class="popup-text" id="popup-how"></div>
+    <div class="popup-link" id="popup-link">Learn more</div>
+  </div>
+</div>
+
+<script>
+const SECTIONS = [
+  { id: "core", label: "Core concepts", cls: "s-core", accent: "#C9EDF0", entries: [
+    { term: "Table", def: "A logical dataset defined by metadata: schema, partition spec, sort order, and the current snapshot.",
+      why: "Iceberg's promise is that a table is a single coherent thing across engines. Schema, partitioning, and history are properties of the table - not of whichever engine wrote last.",
+      how: "CREATE TABLE catalog.db.t (id BIGINT, ts TIMESTAMP) USING iceberg. Once created, any Iceberg-compatible engine can read it via the catalog.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/architecture-and-concepts/" },
+    { term: "Snapshot", def: "An immutable, point-in-time view of the table: the complete set of data files at a moment.",
+      why: "Every commit produces a new snapshot; the previous one stays accessible. This is what enables time travel, isolation between readers and writers, and safe rollback.",
+      how: "Every write produces a snapshot with a unique snapshot-id. Inspect with SELECT * FROM t.snapshots. Use VERSION AS OF or TIMESTAMP AS OF in queries.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/architecture-and-concepts/" },
+    { term: "Metadata file", def: "JSON file describing the current state of the table: schemas, partition specs, snapshot list, current snapshot pointer.",
+      why: "This is the entry point for every reader. The catalog stores only a pointer to the latest metadata.json - atomic swap of that pointer is how commits work.",
+      how: "Located at table-location/metadata/vN.metadata.json. Each commit writes a new version. Old metadata files are cleaned up by expire-snapshots.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/architecture-and-concepts/" },
+    { term: "Manifest list", def: "Per-snapshot index of all manifest files that make up the snapshot.",
+      why: "Lets engines plan a query by reading one small file to discover which manifests (and therefore which data files) might match - no directory listing required.",
+      how: "An Avro file named snap-{snapshot-id}-{seq}-{commit-id}.avro. Each row describes one manifest with summary stats for partition pruning.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/architecture-and-concepts/" },
+    { term: "Manifest file", def: "Avro file listing data files (and delete files) with per-file stats: partition values, row count, column bounds.",
+      why: "Stats stored in the manifest let the query planner prune entire files before opening them. That's why Iceberg scales to millions of files cheaply.",
+      how: "Located under table-location/metadata/. Rewritten by rewriteManifests action when too many small manifests accumulate from frequent commits.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/architecture-and-concepts/" },
+    { term: "Data file", def: "The actual columnar file holding rows - typically Parquet, also ORC or Avro.",
+      why: "Iceberg doesn't replace Parquet; it organises Parquet files into a transactional table. You keep the existing tooling and ecosystem around the file format.",
+      how: "Path is recorded in a manifest; never inferred from directory layout. Listed via SELECT * FROM t.files. Default format set via write.format.default.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/architecture-and-concepts/" },
+    { term: "Format version", def: "Iceberg spec version of the table (v1, v2, v3).",
+      why: "v1 supports row-level changes only via full file rewrite (overwrite); v2 adds first-class row-level deletes (MERGE/UPDATE/DELETE); v3 adds deletion vectors, default values, and richer types. Engine support varies.",
+      how: "Set at create: TBLPROPERTIES ('format-version'='2'). Default is v2 in current Iceberg releases. v3 is rolling out in 2025/2026.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/architecture-and-concepts/" },
+  ]},
+  { id: "schema", label: "Schema & layout", cls: "s-schema", accent: "#0056F9", entries: [
+    { term: "Schema evolution", def: "Changing columns (add, drop, rename, reorder, promote type) without rewriting data.",
+      why: "Hive tables tie schema to file layout - any change risks breaking historical reads. Iceberg decouples them via column IDs so evolution is cheap and safe.",
+      how: "ALTER TABLE t ADD COLUMN email STRING. Old data files don't have the column; readers fill nulls. Drop, rename, and reorder are equally safe.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/data-types-and-schema-evolution/" },
+    { term: "Column ID", def: "Stable, immutable integer assigned to each column at creation; tracked through renames.",
+      why: "The reason rename and reorder are free: the engine matches columns by ID, not by name or position. This is the single trick that makes evolution safe.",
+      how: "Assigned automatically. Never set them manually. Visible in the schema JSON of the metadata file - useful when debugging cross-engine compatibility issues.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/data-types-and-schema-evolution/" },
+    { term: "Partition spec", def: "Declares how rows are bucketed into partitions: identity, bucket, truncate, year/month/day/hour transforms.",
+      why: "Lets the planner skip files whose partition value doesn't match a predicate. Done right, a query on one day reads a few files; done wrong, it reads everything.",
+      how: "CREATE TABLE t (...) PARTITIONED BY (days(ts), bucket(16, user_id)). Use coarse partitions (days) plus a bucket on a high-cardinality key for balance.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/partitioning-and-partition-evolution/" },
+    { term: "Hidden partitioning", def: "Iceberg derives partition values from column transforms (e.g. days(ts)) - users don't need a separate partition column.",
+      why: "In Hive you must add a redundant dt column and remember to filter on it. Iceberg derives it from ts automatically, so any filter on ts prunes partitions.",
+      how: "Just filter on the source column: WHERE ts >= '2026-01-01'. The planner applies the transform and prunes. No separate dt column to keep in sync.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/partitioning-and-partition-evolution/" },
+    { term: "Partition evolution", def: "Changing the partition spec on an existing table without rewriting old data.",
+      why: "Tables grow and access patterns change. Without partition evolution, switching from monthly to daily partitioning means a full rewrite - petabytes of churn.",
+      how: "ALTER TABLE t ADD PARTITION FIELD days(ts). New writes use the new spec; old files keep theirs. Engines plan across multiple specs transparently.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/partitioning-and-partition-evolution/" },
+    { term: "Sort order", def: "Declared ordering of rows within data files (e.g. by event time).",
+      why: "Better column stats and tighter min/max bounds mean better predicate pushdown. Range queries become much cheaper.",
+      how: "Via the Iceberg Spark extensions: `ALTER TABLE t WRITE ORDERED BY ts`. Writers honour the sort when producing files (some cost); compaction rewrites to enforce it on existing data. Other engines expose the same sort order through their own SQL extensions.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/clustering/" },
+  ]},
+  { id: "write", label: "Write operations", cls: "s-write", accent: "#FFDC00", entries: [
+    { term: "Insert", def: "Append new rows; creates one new data file per task and a new snapshot.",
+      why: "The cheapest write. No need to read old data; just write new files and reference them from a new manifest list.",
+      how: "INSERT INTO t SELECT ... or use the engine's batch/streaming sink. Tune write.target-file-size-bytes to avoid producing many small files.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/acid-transactions/" },
+    { term: "Update / Delete", def: "Modify or remove existing rows; implemented as either copy-on-write or merge-on-read.",
+      why: "Lakehouses traditionally couldn't do row-level mutations efficiently. Iceberg makes UPDATE/DELETE first-class - critical for GDPR, CDC, and corrections.",
+      how: "DELETE FROM t WHERE user_id=42. UPDATE t SET status='archived' WHERE ... Choose write.delete.mode and write.update.mode (copy-on-write or merge-on-read).",
+      link: "https://developer.confluent.io/courses/apache-iceberg/updates-and-deletes/" },
+    { term: "MERGE", def: "Upsert in SQL: insert new rows, update matched rows, optionally delete - all in one atomic statement.",
+      why: "The standard way to apply CDC streams or batch upserts to a lakehouse. Replaces fragile staging-table + INSERT OVERWRITE patterns.",
+      how: "MERGE INTO t USING staging s ON t.id=s.id WHEN MATCHED THEN UPDATE SET ... WHEN NOT MATCHED THEN INSERT ... Choose merge mode per the table's MoR/CoW config.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/updates-and-deletes/" },
+    { term: "Copy-on-write (CoW)", def: "On modification, rewrite the affected data files in full; deletes are encoded as missing rows.",
+      why: "Reads are fastest - no delete files to merge at query time. Best when writes are infrequent or affect many rows in few files.",
+      how: "write.update.mode=copy-on-write. Default for v1 tables. Watch write amplification: changing one row in a 100MB file rewrites the whole file.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/updates-and-deletes/" },
+    { term: "Merge-on-read (MoR)", def: "On modification, write small delete files (position or equality); readers reconcile at query time.",
+      why: "Writes are cheap (no rewrite). Ideal for streaming sinks doing frequent small updates. Pay the cost at read time, recovered by compaction.",
+      how: "write.update.mode=merge-on-read. Required for v2 features. Schedule rewrite-data-files compaction frequently to clear accumulated delete files.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/updates-and-deletes/" },
+    { term: "Position delete", def: "Delete file marking specific (file-path, row-position) tuples as removed.",
+      why: "Precise and small. The standard MoR delete representation in v2.",
+      how: "Written automatically by engines doing MoR deletes. Compaction merges them into rewritten data files and clears the delete files.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/updates-and-deletes/" },
+    { term: "Equality delete", def: "Delete file matching by column values (e.g. id=42), applied to any matching row at read time.",
+      why: "Streaming CDC sinks know the key but not the file/position of old rows. Equality deletes let them mark deletions without a read.",
+      how: "Used by Flink Iceberg sink for upsert mode. Configure equality-field-columns. Compact regularly - equality deletes are expensive at read time.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/updates-and-deletes/" },
+    { term: "Deletion vectors (v3)", def: "Compact roaring-bitmap representation of deleted row positions, one vector per data file.",
+      why: "Replaces position deletes with a smaller, faster-to-merge structure. Big read-side speedup for tables with many small deletes.",
+      how: "Requires format-version=3. Spark via the Iceberg Spark runtime (Spark 3.5+) is the leading engine; Trino and Flink integrations are catching up. Migration is automatic on next compaction.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/updates-and-deletes/" },
+  ]},
+  { id: "time", label: "Time travel & branching", cls: "s-time", accent: "#806CFF", entries: [
+    { term: "Snapshot ID", def: "Unique long identifying a snapshot; produced on every commit.",
+      why: "Every write is addressable forever (until expired). Reproducible reads, audits, and ML training all reference snapshot IDs.",
+      how: "SELECT * FROM t VERSION AS OF 12345678. List via SELECT * FROM t.snapshots ORDER BY committed_at DESC.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/time-travel-and-rollback/" },
+    { term: "Time travel (AS OF)", def: "Query the table as it appeared at a specific snapshot or timestamp.",
+      why: "Debug a bad write, reproduce yesterday's report, or train a model on a frozen view - without copying the data.",
+      how: "SELECT * FROM t VERSION AS OF 12345 or SELECT * FROM t TIMESTAMP AS OF '2026-04-01 00:00:00'. Bounded by retained snapshot history.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/time-travel-and-rollback/" },
+    { term: "Branch", def: "Named, mutable pointer to a snapshot; allows divergent writes from main.",
+      why: "Enables write-audit-publish workflows: write to a branch, validate, then fast-forward main. Or run experiments in isolation.",
+      how: "ALTER TABLE t CREATE BRANCH staging. Write with USE BRANCH staging or branch hint in the engine. Fast-forward main: replaceBranch action.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/tagging-and-branching/" },
+    { term: "Tag", def: "Named, immutable reference to a specific snapshot - like a git tag.",
+      why: "Pin a 'known good' snapshot (e.g. quarter-close) so it survives expire-snapshots and can be referenced by name.",
+      how: "ALTER TABLE t CREATE TAG q1_close AS OF VERSION 12345. Query as VERSION AS OF 'q1_close'. Tagged snapshots are protected from expiry.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/tagging-and-branching/" },
+    { term: "Rollback", def: "Reset the current snapshot pointer to a previous one - undo a bad write.",
+      why: "Recovery from accidental DELETE/MERGE without restoring from backup. Atomic and instantaneous; just moves the pointer.",
+      how: "CALL system.rollback_to_snapshot('t', 12345). Or use the Java API rollback() in older engines. New writes after rollback create new history.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/time-travel-and-rollback/" },
+    { term: "Write-audit-publish", def: "Pattern: write to a branch, run quality checks, then merge to main only if valid.",
+      why: "Prevents bad data from ever being visible to downstream consumers. Combines branching, tags, and atomic fast-forward.",
+      how: "Job writes to staging branch; audit job validates; on success, fast-forward main to staging head. On failure, fix and re-run without touching main.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/tagging-and-branching/" },
+  ]},
+  { id: "maint", label: "Maintenance", cls: "s-maint", accent: "#FF7C52", entries: [
+    { term: "Rewrite data files", def: "Compaction - combine many small files into fewer larger ones, apply pending deletes, enforce sort order.",
+      why: "Streaming ingest produces small files. Without compaction, query planning slows down and metadata bloats. Compaction is non-negotiable for streaming tables.",
+      how: "CALL system.rewrite_data_files('t'). Schedule daily/hourly via Airflow or the engine's maintenance procedures. Tune target-file-size-bytes (default 512MB).",
+      link: "https://developer.confluent.io/courses/apache-iceberg/table-maintenance/" },
+    { term: "Rewrite manifests", def: "Merge many small manifest files into fewer well-balanced ones grouped by partition.",
+      why: "Many small manifests slow query planning. Rewriting reorganises them so partition pruning is fast.",
+      how: "CALL system.rewrite_manifests('t'). Run when the manifest count grows large (hundreds+) or after big imports.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/table-maintenance/" },
+    { term: "Expire snapshots", def: "Delete old snapshots and their unreferenced metadata + data files.",
+      why: "Without expiry, every old version of every file is retained forever. Storage cost grows without bound. Also caps the time-travel window.",
+      how: "CALL system.expire_snapshots('t', TIMESTAMP'2026-04-01'). Retain enough snapshots to cover your time-travel SLA. Tagged snapshots are preserved.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/table-maintenance/" },
+    { term: "Remove orphan files", def: "Detect and delete files in the table's storage that aren't referenced by any snapshot.",
+      why: "Failed writes can leave orphaned data files behind, costing storage without serving any query. Periodic cleanup keeps the table tidy.",
+      how: "CALL system.remove_orphan_files('t', older_than => TIMESTAMP'...'). Be cautious with older_than: too aggressive can race with in-flight writes.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/table-maintenance/" },
+    { term: "Snapshot retention", def: "How long old snapshots are kept before being eligible for expiry.",
+      why: "Trade-off between storage cost and time-travel window. The retention window IS the rollback and time-travel SLA.",
+      how: "Set via TBLPROPERTIES: history.expire.min-snapshots-to-keep, history.expire.max-snapshot-age-ms. Expire procedure honours these.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/table-maintenance/" },
+    { term: "Maintenance schedule", def: "Recurring job that runs rewrite + expire + orphan-removal on a cadence.",
+      why: "Iceberg tables are not 'set and forget'. Without scheduled maintenance, performance and cost degrade for any non-trivial workload.",
+      how: "Run as a separate Spark/Flink job or use a managed service (Tabular, Polaris, Snowflake). Frequency: small/streaming tables hourly; large/batch daily.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/table-maintenance/" },
+  ]},
+  { id: "cat", label: "Catalogs", cls: "s-cat", accent: "#00EB92", entries: [
+    { term: "Catalog", def: "The service that maps table names to their current metadata file location; the entry point for every read and write.",
+      why: "Atomic commit comes from the catalog: replacing the metadata pointer is the only single-writer step. Without a catalog, two writers race and corrupt the table.",
+      how: "Pick one per environment: REST, Hive, Glue, Nessie, Polaris, JDBC. Configure all engines with the same catalog so they see the same tables.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/catalog/" },
+    { term: "REST catalog", def: "HTTP-based catalog spec; the Iceberg-native, engine-agnostic standard.",
+      why: "Decouples Iceberg semantics from any specific metastore. Powers managed services (Tabular/Databricks, Snowflake Open Catalog, Polaris) with auth, versioning, and ACLs.",
+      how: "type=rest, uri=https://catalog.example/v1. The server handles concurrency, ACLs, and credential vending for object storage.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/catalog/" },
+    { term: "Hive catalog", def: "Stores Iceberg metadata pointers in the Hive Metastore.",
+      why: "Lets existing Hive-based stacks adopt Iceberg without replacing the metastore. Common transitional choice when migrating from Hive.",
+      how: "catalog-type=hive, uri=thrift://metastore:9083. Iceberg writes metadata files to object storage and updates the HMS pointer atomically.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/catalog/" },
+    { term: "AWS Glue catalog", def: "Uses AWS Glue Data Catalog as the metastore; native on AWS.",
+      why: "The path of least resistance on AWS - Glue is already the source of truth for Athena, EMR, Redshift Spectrum. Iceberg slots straight in.",
+      how: "catalog-type=glue. Athena and EMR support Iceberg out of the box on Glue. IAM controls who can read/write tables.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/catalog/" },
+    { term: "Nessie / Polaris", def: "Git-like catalogs with branching and tagging built into the catalog itself.",
+      why: "Promote write-audit-publish to a first-class catalog operation across many tables. Multi-table transactions become possible.",
+      how: "Nessie (Dremio) and Polaris (Snowflake) speak REST. Create a branch in the catalog, do many table writes, then merge atomically.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/catalog/" },
+    { term: "JDBC catalog", def: "Stores catalog state in a relational database (Postgres, MySQL).",
+      why: "Simple, no extra service to run. Good for small deployments or local development. Atomicity comes from the database's transactions.",
+      how: "catalog-type=jdbc, uri=jdbc:postgresql://... Iceberg manages its own schema in the DB. Don't share a DB instance with high-write OLTP workloads.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/catalog/" },
+  ]},
+  { id: "perf", label: "Performance", cls: "s-perf", accent: "#D4E84A", entries: [
+    { term: "Partition pruning", def: "Skipping entire partitions based on manifest list summaries before touching manifests.",
+      why: "First and cheapest level of filtering. A WHERE clause on the partition column means you read a handful of manifests instead of all of them.",
+      how: "Filter on the source column of a partition transform: WHERE ts >= ... Engine inspects manifest list partition summaries and skips non-matching manifests.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/partitioning-and-partition-evolution/" },
+    { term: "Predicate pushdown", def: "Filter on non-partition columns evaluated against per-file min/max stats in manifests.",
+      why: "Even within a partition, you don't need to read every file. Manifests store column bounds - files outside the predicate range are pruned without opening.",
+      how: "Works automatically when stats are present. Add columns to write.metadata.metrics.column.... for stats. Sort by a filter column for tighter bounds.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/metadata-tables/" },
+    { term: "File size target", def: "The intended size of each data file produced by writes and compaction.",
+      why: "Too small: many small files inflate metadata and slow planning. Too large: poor parallelism and bigger write amplification on COW updates.",
+      how: "TBLPROPERTIES ('write.target-file-size-bytes'='536870912') for 512MB (a common sweet spot). Compaction rewrites toward this target.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/table-maintenance/" },
+    { term: "Statistics", def: "Per-file and per-column min/max/null counts stored in manifests; optionally NDV via Puffin sidecars.",
+      why: "All planning-time pruning depends on stats. Missing or stale stats means full table scans even when filters look selective.",
+      how: "Stats are written automatically per file. For column-level NDV used by cost-based optimisers, generate Puffin stats via the engine's analyse command.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/metadata-tables/" },
+    { term: "Bloom filters", def: "Optional per-column bloom filters in Parquet files for point-lookup filters.",
+      why: "Useful for high-cardinality equality predicates (e.g. user_id IN (...)) where min/max stats can't prune much.",
+      how: "write.parquet.bloom-filter-enabled.column.user_id=true. Adds write overhead and file size - enable only on columns frequently filtered with equality.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/metadata-tables/" },
+    { term: "Z-order", def: "Multi-dimensional clustering during compaction so files have tight bounds on multiple columns at once.",
+      why: "When queries filter on several columns (e.g. user_id AND product_id), single-column sort doesn't help both. Z-order helps prune on either dimension.",
+      how: "CALL system.rewrite_data_files('t', strategy=>'sort', sort_order=>'zorder(user_id, product_id)'). Expensive to compute - schedule periodically, not per write.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/clustering/" },
+    { term: "Snapshot caching", def: "Engines cache table metadata (current snapshot, schema) for a short interval to skip catalog round-trips.",
+      why: "On a busy query workload, every query asking the catalog 'what's the current snapshot?' becomes a bottleneck. Caching amortises that.",
+      how: "Configurable per engine: e.g. iceberg.snapshot-cache-eviction-interval-seconds in Trino. Trade staleness for throughput; default values are usually fine.",
+      link: "https://developer.confluent.io/courses/apache-iceberg/query-engines-and-ecosystem/" },
+  ]},
+];
+
+// ── Build DOM ──────────────────────────────────────────────────────────────
+const grid = document.getElementById('grid');
+
+SECTIONS.forEach(sec => {
+  const card = document.createElement('div');
+  card.className = `section ${sec.cls}`;
+
+  const header = document.createElement('div');
+  header.className = 'section-header';
+  header.innerHTML = `<div class="bar"></div>${sec.label}`;
+  card.appendChild(header);
+
+  sec.entries.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'entry';
+    row.dataset.term = entry.term;
+    row.dataset.def  = entry.def;
+    row.dataset.why  = entry.why;
+    row.dataset.how  = entry.how;
+    if (entry.link) {
+      row.dataset.link = entry.link;
+      row.classList.add('has-link');
+      row.addEventListener('click', () => window.open(entry.link, '_blank', 'noopener'));
+    }
+    row.dataset.accent = sec.accent;
+    row.innerHTML = `
+      <span class="entry-term">${entry.term}</span>
+      <span class="entry-dot"></span>
+      <span class="entry-def">${entry.def}</span>
+      <span class="entry-hint">↗</span>`;
+    card.appendChild(row);
+  });
+
+  grid.appendChild(card);
+});
+
+// ── Popup logic ────────────────────────────────────────────────────────────
+const popup      = document.getElementById('popup');
+const popupDot   = document.getElementById('popup-dot');
+const popupTerm  = document.getElementById('popup-term');
+const popupDesc  = document.getElementById('popup-desc');
+const popupWhy   = document.getElementById('popup-why');
+const popupHow   = document.getElementById('popup-how');
+const popupLink  = document.getElementById('popup-link');
+const popupPin   = document.getElementById('popup-pin');
+const popupClose = document.getElementById('popup-close');
+
+let activeEntry = null;
+let docked = false;
+let hideTimer = null;
+
+function cancelHide() { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } }
+function scheduleHide(delay = 180) {
+  if (docked) return;
+  cancelHide();
+  hideTimer = setTimeout(() => {
+    activeEntry = null;
+    popup.classList.remove('visible');
+  }, delay);
+}
+
+function setDocked(v) {
+  docked = v;
+  popup.classList.toggle('docked', v);
+  popupPin.classList.toggle('active', v);
+  popupPin.title = v ? 'Undock popup' : 'Dock popup';
+  if (v) cancelHide();
+}
+
+popup.addEventListener('mouseenter', cancelHide);
+popup.addEventListener('mouseleave', () => scheduleHide());
+
+let dragging = false;
+let dragDx = 0, dragDy = 0;
+const popupHeader = popup.querySelector('.popup-header');
+popupHeader.addEventListener('mousedown', e => {
+  if (e.target.closest('button')) return;
+  dragging = true;
+  if (!docked) setDocked(true);
+  cancelHide();
+  const rect = popup.getBoundingClientRect();
+  dragDx = e.clientX - rect.left;
+  dragDy = e.clientY - rect.top;
+  popup.classList.add('dragging');
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const margin = 8;
+  const pw = popup.offsetWidth;
+  const ph = popup.offsetHeight;
+  let x = e.clientX - dragDx;
+  let y = e.clientY - dragDy;
+  x = Math.max(margin, Math.min(x, window.innerWidth  - pw - margin));
+  y = Math.max(margin, Math.min(y, window.innerHeight - ph - margin));
+  popup.style.left = x + 'px';
+  popup.style.top  = y + 'px';
+});
+document.addEventListener('mouseup', () => {
+  if (!dragging) return;
+  dragging = false;
+  popup.classList.remove('dragging');
+});
+
+popupPin.addEventListener('click', e => {
+  e.stopPropagation();
+  setDocked(!docked);
+});
+popupClose.addEventListener('click', e => {
+  e.stopPropagation();
+  setDocked(false);
+  activeEntry = null;
+  popup.classList.remove('visible');
+});
+popupLink.addEventListener('click', () => {
+  if (activeEntry && activeEntry.dataset.link) {
+    window.open(activeEntry.dataset.link, '_blank', 'noopener');
+  }
+});
+
+function renderInline(text) {
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return escaped.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+}
+
+function showPopup(entry, e) {
+  cancelHide();
+  activeEntry = entry;
+  popupDot.style.background = entry.dataset.accent;
+  popupTerm.textContent = entry.dataset.term;
+  popupDesc.innerHTML = renderInline(entry.dataset.def);
+  popupWhy.innerHTML  = renderInline(entry.dataset.why);
+  popupHow.innerHTML  = renderInline(entry.dataset.how);
+  if (entry.dataset.link) {
+    popupLink.classList.add('visible');
+  } else {
+    popupLink.classList.remove('visible');
+  }
+  popup.classList.add('visible');
+  popup.scrollTop = 0;
+  positionPopup(e);
+}
+
+function positionPopup(e) {
+  if (docked) return;
+  const margin = 8;
+  const pw = popup.offsetWidth || 360;
+  const ph = Math.min(popup.scrollHeight || 280, window.innerHeight * 0.75);
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let x = e.clientX + 16;
+  if (x + pw > vw - margin) {
+    const leftX = e.clientX - pw - 16;
+    x = leftX >= margin ? leftX : Math.max(margin, vw - pw - margin);
+  }
+  if (x < margin) x = margin;
+  let y = e.clientY + 8;
+  if (y + ph > vh - margin) y = Math.max(margin, vh - ph - margin);
+  if (y < margin) y = margin;
+  popup.style.left = x + 'px';
+  popup.style.top  = y + 'px';
+}
+
+document.querySelectorAll('.entry').forEach(row => {
+  row.addEventListener('mouseenter', e => showPopup(row, e));
+  row.addEventListener('mouseleave', () => scheduleHide());
+});
+
+// When the popup is docked it can sit on top of entries and block their mouseenter.
+// Watch the cursor globally: if it's over an entry (even one beneath the popup), update content.
+document.addEventListener('mousemove', e => {
+  if (!docked || dragging) return;
+  const stack = document.elementsFromPoint(e.clientX, e.clientY);
+  for (const el of stack) {
+    if (el === popup || popup.contains(el)) return;
+    const row = el.closest && el.closest('.entry');
+    if (row) {
+      if (row !== activeEntry) showPopup(row, e);
+      return;
+    }
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apache Flink Cheatsheet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --neu-blue:   #0056F9;
+    --polar:      #009FFF;
+    --glow:       #00EB92;
+    --charcoal:   #1E1E1E;
+    --snow:       #FAFAFA;
+    --slate:      #767676;
+    --zest:       #FFDC00;
+    --sienna:     #FF7C52;
+    --sky:        #C9EDF0;
+    --indigo:     #1E21D0;
+    --violet:     #806CFF;
+    --flink-pink: #E6526F;
+    --flink-pink-dark: #B83853;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--charcoal);
+    color: var(--snow);
+    min-height: 100vh;
+    padding: 0 0 48px;
+  }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(90deg, var(--flink-pink-dark), var(--flink-pink));
+    padding: 28px 40px 22px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .header-logo {
+    height: 52px;
+    width: auto;
+    max-width: 200px;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
+  .header-text { flex: 1; min-width: 0; }
+  .header-back {
+    display: inline-block;
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    margin-bottom: 4px;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, transform 0.15s;
+  }
+  .header-back:hover { color: #fff; transform: translateX(-2px); }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 2px;
+    background: var(--glow);
+  }
+  .header-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+  .header-title span { font-weight: 400; opacity: 0.9; }
+  .header-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 16px 40px 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ── Section card ── */
+  .section {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .section-header {
+    padding: 10px 14px 9px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-header .bar {
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Entry row ── */
+  .entry {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    padding: 7px 14px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.12s;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .entry:hover { background: rgba(255,255,255,0.06); }
+  .entry-term {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    width: 160px;
+    flex-shrink: 0;
+    padding-right: 10px;
+  }
+  .entry-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin: 0 10px;
+    position: relative;
+    top: -1px;
+    opacity: 0.7;
+  }
+  .entry-def {
+    font-size: 12px;
+    color: #aaa;
+    line-height: 1.5;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entry-hint {
+    font-size: 10px;
+    opacity: 0.3;
+    margin-left: 8px;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+  .entry:hover .entry-hint { opacity: 0.7; }
+
+  /* ── Popup tooltip ── */
+  .popup {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    width: 380px;
+    max-height: 75vh;
+    background: #111;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 0;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    pointer-events: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .popup.has-example,
+  .popup.has-diagram { width: min(760px, calc(100vw - 24px)); }
+  .popup::-webkit-scrollbar { width: 8px; }
+  .popup::-webkit-scrollbar-track { background: transparent; }
+  .popup::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  .popup::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+  .popup.visible { display: block; }
+  .popup-header {
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+    user-select: none;
+  }
+  .popup-controls {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .popup-btn {
+    background: transparent;
+    border: 0;
+    padding: 2px 7px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    border-radius: 3px;
+    line-height: 1;
+    font-family: inherit;
+    transition: color 0.15s, background 0.15s;
+  }
+  .popup-btn:hover { color: var(--snow); background: rgba(255,255,255,0.08); }
+  .popup-pin.active { color: var(--glow); }
+  .popup-close { display: none; }
+  .popup.docked .popup-close { display: inline-block; }
+  .popup .popup-header { cursor: grab; }
+  .popup.dragging .popup-header,
+  .popup.dragging { cursor: grabbing; user-select: none; }
+  .popup-header .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .popup-term {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--snow);
+  }
+  .popup-body {
+    padding: 14px 16px 16px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "main"
+      "link";
+    column-gap: 18px;
+    row-gap: 14px;
+  }
+  /* example only (no diagram): text | example */
+  .popup.has-example:not(.has-diagram) .popup-body {
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+    grid-template-areas:
+      "main example"
+      "link link";
+  }
+  /* diagram only (no example): single column, diagram below the text */
+  .popup.has-diagram:not(.has-example) .popup-body {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "main"
+      "diagram"
+      "link";
+  }
+  /* diagram + example: text top-left, diagram bottom-left, example spans the right column */
+  .popup.has-diagram.has-example .popup-body {
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+    grid-template-areas:
+      "main    example"
+      "diagram example"
+      "link    link";
+  }
+  .popup-main-col    { grid-area: main; min-width: 0; }
+  .popup-diagram-col { grid-area: diagram; min-width: 0; align-self: start; display: none; }
+  .popup-example-col { grid-area: example; min-width: 0; display: none; }
+  .popup.has-diagram .popup-diagram-col { display: block; }
+  .popup.has-example .popup-example-col { display: block; }
+  .popup .popup-link { grid-area: link; }
+  .popup-section-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.4;
+    margin-bottom: 4px;
+  }
+  .popup-text {
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #ccc;
+    margin-bottom: 14px;
+  }
+  .popup-text:last-child { margin-bottom: 0; }
+  .popup-why { color: #ccc; }
+  .popup-how { color: #ccc; }
+  .popup-label-why { color: var(--glow); }
+  .popup-label-how { color: var(--polar); }
+  .popup-label-example { color: var(--zest); }
+  .popup-link {
+    display: none;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    font-size: 11px;
+    color: var(--polar);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .popup-link.visible { display: block; }
+  .popup-link::before { content: '↗ '; opacity: 0.7; }
+  .popup-link { cursor: pointer; }
+  .popup-link:hover { text-decoration: underline; }
+  .entry.has-link .entry-hint { color: var(--polar); opacity: 0.6; }
+  .entry.has-link:hover .entry-hint { opacity: 1; }
+  .popup-example-block { display: none; margin-top: 4px; }
+  .popup-example-block.visible { display: block; }
+  .popup-diagram-wrap { display: none; margin-bottom: 14px; }
+  .popup-diagram-wrap.visible { display: block; }
+  .popup-diagram {
+    background: #050505;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px;
+    padding: 10px 10px 6px;
+    margin-top: 4px;
+  }
+  .popup-diagram svg { width: 100%; height: auto; display: block; }
+  .popup-example-wrap { display: none; }
+  .popup-example-wrap.visible { display: block; }
+  .popup-label-diagram { color: var(--violet); }
+  .popup-example {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.55;
+    color: #e6e6e6;
+    background: #050505;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px;
+    padding: 10px 12px;
+    white-space: pre;
+    overflow-x: auto;
+    margin: 0;
+  }
+  .popup-example [data-h="kw"]  { color: #ff8aa8; font-weight: 500; }
+  .popup-example [data-h="fn"]  { color: var(--polar); }
+  .popup-example [data-h="str"] { color: var(--glow); }
+  .popup-example [data-h="cm"]  { color: #666; font-style: italic; }
+  .inline-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,0.07);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #e6e6e6;
+    border: 1px solid rgba(255,255,255,0.05);
+    white-space: nowrap;
+  }
+
+  /* ── Section color themes ── */
+  .s-stream  { background: #0a1628; } .s-stream  .section-header { background: #0d1f3a; color: #4a9eff; } .s-stream  .bar, .s-stream  .entry-dot { background: var(--neu-blue); } .s-stream  .entry-term { color: #7ab8ff; }
+  .s-time    { background: #0a1f16; } .s-time    .section-header { background: #0d2a1e; color: var(--glow); } .s-time    .bar, .s-time    .entry-dot { background: var(--glow); }   .s-time    .entry-term { color: #5dffc0; }
+  .s-window  { background: #130e24; } .s-window  .section-header { background: #1c1435; color: var(--violet); } .s-window  .bar, .s-window  .entry-dot { background: var(--violet); } .s-window  .entry-term { color: #b09dff; }
+  .s-ops     { background: #1e1500; } .s-ops     .section-header { background: #2a1e00; color: var(--zest); }  .s-ops     .bar, .s-ops     .entry-dot { background: var(--zest); }   .s-ops     .entry-term { color: #ffe566; }
+  .s-state   { background: #0a1e24; } .s-state   .section-header { background: #0d2830; color: var(--sky); }   .s-state   .bar, .s-state   .entry-dot { background: var(--sky); }    .s-state   .entry-term { color: #a0dfe8; }
+  .s-arch    { background: #0d0e24; } .s-arch    .section-header { background: #14152e; color: #8487f0; } .s-arch   .bar, .s-arch    .entry-dot { background: #5d61ee; }      .s-arch    .entry-term { color: #a4a7ff; }
+  .s-fault   { background: #1e1008; } .s-fault   .section-header { background: #2a1810; color: var(--sienna); } .s-fault  .bar, .s-fault   .entry-dot { background: var(--sienna); } .s-fault   .entry-term { color: #ffb090; }
+  .s-sql     { background: #14140a; } .s-sql     .section-header { background: #1e1e10; color: #d4e84a; }       .s-sql    .bar, .s-sql     .entry-dot { background: #d4e84a; }       .s-sql     .entry-term { color: #e8f07a; }
+
+  /* ── Overview ── */
+  .overview {
+    max-width: 1200px;
+    margin: 24px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .overview-what {
+    background: #1c0c14;
+    border: 1px solid rgba(230,82,111,0.25);
+    border-radius: 8px;
+    padding: 20px 22px;
+    border-left: 3px solid var(--flink-pink);
+  }
+  .overview-fits {
+    background: #1c0c14;
+    border: 1px solid rgba(230,82,111,0.25);
+    border-radius: 8px;
+    padding: 20px 22px;
+    border-left: 3px solid var(--flink-pink);
+  }
+  .overview-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .overview-title .ot-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .overview-what .overview-title { color: var(--flink-pink); }
+  .overview-what .ot-dot { background: var(--flink-pink); }
+  .overview-fits .overview-title { color: var(--flink-pink); }
+  .overview-fits .ot-dot { background: var(--flink-pink); }
+
+  .overview-text {
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #aaa;
+  }
+  .overview-text strong { color: var(--snow); font-weight: 500; }
+
+  .fit-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px 12px;
+    margin-top: 2px;
+  }
+  .fit-list li {
+    font-size: 12px;
+    color: #aaa;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    line-height: 1.5;
+  }
+  .fit-list li::before {
+    content: '✓';
+    color: var(--flink-pink);
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .fit-list li strong { color: var(--snow); font-weight: 500; }
+
+  .not-fit {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    font-size: 11px;
+    color: var(--slate);
+  }
+  .not-fit strong { color: var(--sienna); font-weight: 500; }
+  .migrate-from {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--slate);
+    line-height: 1.55;
+  }
+  .migrate-from strong { color: var(--flink-pink); font-weight: 500; }
+
+  /* ── Project section ── */
+  .project {
+    max-width: 1200px;
+    margin: 16px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .project-card {
+    background: #1c0c14;
+    border: 1px solid rgba(230,82,111,0.25);
+    border-radius: 8px;
+    padding: 18px 22px;
+    border-left: 3px solid var(--flink-pink);
+  }
+  .project-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    color: var(--flink-pink);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .project-title .pt-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--flink-pink);
+    flex-shrink: 0;
+  }
+  .project-list {
+    list-style: none;
+    display: grid;
+    gap: 8px;
+  }
+  .project-list li {
+    display: flex;
+    align-items: baseline;
+    font-size: 12px;
+    gap: 12px;
+  }
+  .project-list .label {
+    color: #888;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    width: 92px;
+  }
+  .project-list a {
+    color: #ddd;
+    text-decoration: none;
+    border-bottom: 1px dotted rgba(255,255,255,0.18);
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .project-list a:hover { color: var(--flink-pink); border-bottom-color: var(--flink-pink); }
+  .project-versions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .project-versions-list code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px;
+    border-radius: 3px;
+    color: #ccc;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .project-versions-list code.latest {
+    background: rgba(230,82,111,0.18);
+    color: var(--flink-pink);
+    border-color: rgba(230,82,111,0.35);
+    font-weight: 500;
+  }
+  .project-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 17px;
+    color: #fff;
+    font-weight: 500;
+    line-height: 1.1;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    color: var(--slate);
+    font-size: 11px;
+    margin-top: 32px;
+  }
+
+  @media (max-width: 780px) {
+    .grid { grid-template-columns: 1fr; padding: 16px; }
+    .overview { grid-template-columns: 1fr; padding: 16px; }
+    header { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img class="header-logo" src="../shared/logos/flink.svg" alt="Apache Flink logo">
+  <div class="header-text">
+    <a class="header-back" href="../">← All cheatsheets</a>
+    <div class="header-title">Apache Flink<sup style="font-size:14px;opacity:0.7;margin-left:2px;">®</sup> <span>Cheatsheet</span></div>
+    <div class="header-sub">Key concepts - hover any entry for details</div>
+  </div>
+</header>
+
+<div class="overview">
+  <div class="overview-what">
+    <div class="overview-title"><div class="ot-dot"></div>What is Apache Flink?</div>
+    <p class="overview-text">
+      <strong>Apache Flink</strong> is a distributed stream-processing engine built for
+      <strong>stateful computations over unbounded and bounded data streams</strong>.
+      Unlike batch systems that wait for all data before processing, Flink processes each
+      event as it arrives - with millisecond latency - while maintaining persistent state
+      across millions of keys and guaranteeing exactly-once correctness even after failures.
+    </p>
+    <p class="overview-text" style="margin-top:9px">
+      Its unified API handles both <strong>streaming</strong> (continuous, never-ending) and
+      <strong>batch</strong> (finite, historical) workloads with the same SQL or DataStream
+      code. State is first-class: Flink checkpoints the entire pipeline to durable storage
+      periodically, so any failure is fully recoverable with no data loss or duplication.
+    </p>
+  </div>
+
+  <div class="overview-fits">
+    <div class="overview-title"><div class="ot-dot"></div>When Flink is the right fit</div>
+    <ul class="fit-list">
+      <li><span><strong>Real-time analytics</strong> - dashboards and metrics that update as events arrive, not on a cron delay</span></li>
+      <li><span><strong>Event-driven pipelines</strong> - react to fraud signals, alerts, or threshold breaches the moment they happen</span></li>
+      <li><span><strong>CDC & data sync</strong> - replicate database changes to a warehouse or search index with sub-second lag</span></li>
+      <li><span><strong>Stream enrichment</strong> - join a high-volume event stream against a slowly-changing reference table at scale</span></li>
+      <li><span><strong>Sessionisation</strong> - group user activity into sessions with dynamic, activity-driven boundaries</span></li>
+      <li><span><strong>Materialized views</strong> - keep a precomputed result set continuously fresh without full recomputation</span></li>
+      <li><span><strong>Large stateful jobs</strong> - per-key state across billions of keys backed by RocksDB on disk</span></li>
+      <li><span><strong>Exactly-once ETL</strong> - end-to-end correctness guarantees into Kafka, Iceberg, or JDBC targets</span></li>
+    </ul>
+    <p class="not-fit"><strong>Less ideal for:</strong> pure ad-hoc SQL queries (use Trino/Athena), simple periodic batch reports with no streaming requirement (use Spark), or sub-millisecond latency (use in-memory DBs).</p>
+    <p class="migrate-from"><strong>Often replaces:</strong> Apache Spark Streaming / Structured Streaming, Apache Storm, Apache Samza, or hand-rolled Kafka consumer apps with bespoke state management.</p>
+  </div>
+</div>
+
+<div class="project">
+  <div class="project-card">
+    <div class="project-title"><div class="pt-dot"></div>Project resources</div>
+    <ul class="project-list">
+      <li><span class="label">Code</span><a href="https://github.com/apache/flink" target="_blank" rel="noopener">github.com/apache/flink</a></li>
+      <li><span class="label">Docs</span><a href="https://nightlies.apache.org/flink/flink-docs-stable/" target="_blank" rel="noopener">nightlies.apache.org/flink-docs-stable</a></li>
+      <li><span class="label">Issues</span><a href="https://issues.apache.org/jira/projects/FLINK" target="_blank" rel="noopener">issues.apache.org/jira/FLINK</a></li>
+      <li><span class="label">Community</span><a href="https://flink.apache.org/community.html" target="_blank" rel="noopener">flink.apache.org/community</a></li>
+      <li><span class="label">Slack</span><a href="https://flink.apache.org/what-is-flink/community/#slack" target="_blank" rel="noopener">apache-flink.slack.com</a></li>
+      <li><span class="label">Mailing list</span><a href="mailto:user-subscribe@flink.apache.org">user@flink.apache.org</a></li>
+      <li><span class="label">Stack Overflow</span><a href="https://stackoverflow.com/questions/tagged/apache-flink" target="_blank" rel="noopener">tag: apache-flink</a></li>
+    </ul>
+  </div>
+  <div class="project-card">
+    <div class="project-title"><div class="pt-dot"></div>Releases & stats</div>
+    <div class="project-versions-list">
+      <code class="latest">2.1.0</code>
+      <code>2.0.0</code>
+      <code>1.20.x</code>
+      <code>1.19.x</code>
+      <code>1.18.x</code>
+      <code>1.17.x</code>
+      <a href="./releases.html" style="font-size:11px;color:var(--flink-pink);text-decoration:none;border-bottom:1px dotted rgba(230,82,111,0.4);align-self:center;">Full history →</a>
+    </div>
+    <div class="project-stats">
+      <div>
+        <div class="stat-value">2.1.0</div>
+        <div class="stat-label">Latest (Apr 2026)</div>
+      </div>
+      <div>
+        <div class="stat-value">~24k</div>
+        <div class="stat-label">GitHub stars</div>
+      </div>
+      <div>
+        <div class="stat-value">~1,800</div>
+        <div class="stat-label">Contributors</div>
+      </div>
+      <div>
+        <div class="stat-value">2014</div>
+        <div class="stat-label">ASF top-level since</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<footer>Apache Flink - flink.apache.org</footer>
+
+<div class="popup" id="popup">
+  <div class="popup-header">
+    <div class="dot" id="popup-dot"></div>
+    <div class="popup-term" id="popup-term"></div>
+    <div class="popup-controls">
+      <button class="popup-btn popup-pin" id="popup-pin" type="button" title="Dock popup" aria-label="Dock popup">⚲</button>
+      <button class="popup-btn popup-close" id="popup-close" type="button" title="Close" aria-label="Close">×</button>
+    </div>
+  </div>
+  <div class="popup-body">
+    <div class="popup-main-col">
+      <div class="popup-section-label">What it is</div>
+      <div class="popup-text" id="popup-desc"></div>
+      <div class="popup-section-label popup-label-why">Why it matters</div>
+      <div class="popup-text popup-why" id="popup-why"></div>
+      <div class="popup-section-label popup-label-how">How to use it</div>
+      <div class="popup-text popup-how" id="popup-how"></div>
+    </div>
+    <div class="popup-diagram-col" id="popup-diagram-col">
+      <div class="popup-section-label popup-label-diagram">Visual</div>
+      <div class="popup-diagram" id="popup-diagram"></div>
+    </div>
+    <div class="popup-example-col" id="popup-example-col">
+      <div class="popup-section-label popup-label-example">Example</div>
+      <pre class="popup-example" id="popup-example"></pre>
+    </div>
+    <div class="popup-link" id="popup-link">Learn more</div>
+  </div>
+</div>
+
+<script>
+const SECTIONS = [
+  { id: "stream", label: "Stream types", cls: "s-stream", accent: "#0056F9", entries: [
+    { term: "Unbounded stream", def: "Data that never ends; Flink's native operating model.",
+      why: "Most real-world data sources - Kafka topics, CDC feeds, IoT sensors - are continuous. Flink is built around this assumption, unlike batch systems that need all data upfront.",
+      how: "Connect a Kafka source without specifying an end offset. Flink will process events indefinitely, updating aggregates and outputs in real time.",
+      link: "https://developer.confluent.io/courses/apache-flink/stream-processing/" },
+    { term: "Bounded stream", def: "A finite dataset; runs as a batch job in Flink.",
+      why: "Lets you use the same Flink SQL or DataStream API for historical backfills and batch ETL - no need to switch to a separate system.",
+      how: "Use a source with bounded mode (e.g. a file source, or Kafka with end offsets). Flink detects the bound and runs the job to completion.",
+      link: "https://developer.confluent.io/courses/apache-flink/stream-processing/" },
+    { term: "Append stream", def: "Events only ever inserted - never updated or deleted.",
+      why: "The simplest and most efficient stream type. No state needed to track retractions. Ideal for immutable event logs.",
+      how: "Any INSERT-only source produces an append stream. Avoid aggregations or joins that produce updates if you want to stay in append mode.",
+      link: "https://developer.confluent.io/courses/flink-sql/changelog-processing/" },
+    { term: "Retract stream", def: "Carries +I inserts and -D retractions; old value explicitly withdrawn before the new one is sent.",
+      why: "Needed when sinks can't do key-based upserts (e.g. JDBC sinks). The sink sees an explicit delete before the new insert, keeping data consistent.",
+      how: "Produced automatically by aggregations and joins. The sink needs to handle both +I and -D messages - JDBC sinks do this via DELETE then INSERT.",
+      link: "https://developer.confluent.io/courses/flink-sql/changelog-processing/" },
+    { term: "Upsert stream", def: "Keyed rows; a new row silently replaces the old one with the same key.",
+      why: "More efficient than retract for key-value stores and Kafka topics - no explicit -D message needed, just overwrite.",
+      how: "Use an upsert-kafka sink (requires a PRIMARY KEY). Flink writes the key to the Kafka message key; a new message on the same key is treated as an upsert.",
+      link: "https://developer.confluent.io/courses/flink-sql/changelog-processing/" },
+    { term: "Changelog stream", def: "General term for +I / -U / +U / -D operations encoding how a table changes over time.",
+      why: "The underlying representation of any dynamic table in Flink SQL. Understanding it helps you debug unexpected query behaviour and choose the right sink.",
+      how: "In SQL Client, set result-mode to 'changelog' to see raw changelog ops. Use TO_CHANGELOG() to explicitly convert a stream.",
+      link: "https://developer.confluent.io/courses/flink-sql/changelog-processing/" },
+    { term: "CDC", def: "Change Data Capture - reading a DB changelog (e.g. MySQL binlog) as a Flink stream.",
+      why: "Lets you replicate or react to database changes in real time without polling. The foundation of most real-time data pipeline architectures.",
+      how: "Use Flink CDC connectors (flink-cdc-connectors) for MySQL, Postgres, MongoDB etc. The source emits a changelog stream you can join, filter, and sink.",
+      link: "https://developer.confluent.io/courses/flink-sql/changelog-processing/" },
+  ]},
+  { id: "time", label: "Time & ordering", cls: "s-time", accent: "#00EB92", entries: [
+    { term: "Event time", def: "The timestamp embedded in the event itself - when it happened, not when Flink saw it.",
+      why: "Network delays and out-of-order arrival mean processing time is unreliable for business logic. Event time gives reproducible, correct results regardless of when data arrives.",
+      how: "Define a WATERMARK on your source table's timestamp column in SQL, or call assignTimestampsAndWatermarks() in the DataStream API.",
+      link: "https://developer.confluent.io/courses/apache-flink/timely-stream-processing/" },
+    { term: "Processing time", def: "Wall-clock time at the moment Flink processes the record.",
+      why: "Simplest to set up - no watermarks needed. Acceptable when approximate results are fine and latency matters more than correctness.",
+      how: "In SQL, use `PROCTIME()` as a computed column. In the DataStream API, processing time is the implicit default since 1.12 - no `TimeCharacteristic` to set (the enum was deprecated then and removed in 2.0).",
+      link: "https://developer.confluent.io/courses/apache-flink/timely-stream-processing/" },
+    { term: "Watermark", def: "A marker saying 'no event earlier than T should arrive after this point.' Tells Flink when a window is complete.",
+      why: "Without watermarks, Flink can't know when a time window is 'done' and safe to emit. Watermarks balance completeness against latency.",
+      how: "In SQL: WATERMARK FOR ts AS ts - INTERVAL '5' SECOND. The lag controls how long Flink waits for late data. Smaller = lower latency, more data dropped.",
+      link: "https://developer.confluent.io/courses/flink-sql/watermarks/" },
+    { term: "Late data", def: "An event arriving after the watermark has passed its timestamp.",
+      why: "Dropping late data silently causes incorrect aggregates. Knowing your late data strategy is critical for SLA compliance.",
+      how: "In DataStream: allowedLateness() on a window. In SQL: the watermark lag IS the allowed lateness. Use side outputs to capture and audit dropped events.",
+      link: "https://developer.confluent.io/courses/flink-sql/watermarks/" },
+  ]},
+  { id: "window", label: "Windows", cls: "s-window", accent: "#806CFF", entries: [
+    { term: "Tumbling window", def: "Fixed-size, non-overlapping buckets (e.g. every 5 minutes).",
+      why: "The go-to for periodic reporting: hourly revenue, per-minute error counts. Every event belongs to exactly one window.",
+      how: "Use the `TUMBLE` window TVF in Flink SQL, or `TumblingEventTimeWindows` in the DataStream API.",
+      diagram: `<svg viewBox="0 0 360 100" xmlns="http://www.w3.org/2000/svg">
+  <text x="0" y="10" fill="#aaa" font-size="10" font-family="Inter">5-min tumbling - each event in exactly one window</text>
+  <rect x="0"   y="20" width="80" height="42" fill="rgba(128,108,255,0.13)"/>
+  <rect x="80"  y="20" width="80" height="42" fill="rgba(128,108,255,0.24)"/>
+  <rect x="160" y="20" width="80" height="42" fill="rgba(128,108,255,0.13)"/>
+  <rect x="240" y="20" width="80" height="42" fill="rgba(128,108,255,0.24)"/>
+  <text x="40"  y="33" text-anchor="middle" fill="#b09dff" font-size="10" font-family="Inter">W1</text>
+  <text x="120" y="33" text-anchor="middle" fill="#b09dff" font-size="10" font-family="Inter">W2</text>
+  <text x="200" y="33" text-anchor="middle" fill="#b09dff" font-size="10" font-family="Inter">W3</text>
+  <text x="280" y="33" text-anchor="middle" fill="#b09dff" font-size="10" font-family="Inter">W4</text>
+  <g fill="#b09dff">
+    <circle cx="22"  cy="51" r="3"/><circle cx="50" cy="51" r="3"/><circle cx="66" cy="51" r="3"/>
+    <circle cx="98"  cy="51" r="3"/><circle cx="135" cy="51" r="3"/>
+    <circle cx="172" cy="51" r="3"/><circle cx="195" cy="51" r="3"/><circle cx="220" cy="51" r="3"/>
+    <circle cx="262" cy="51" r="3"/><circle cx="295" cy="51" r="3"/>
+  </g>
+  <line x1="0" y1="71" x2="320" y2="71" stroke="rgba(255,255,255,0.3)"/>
+  <g stroke="rgba(255,255,255,0.45)">
+    <line x1="0"   y1="68" x2="0"   y2="74"/>
+    <line x1="80"  y1="68" x2="80"  y2="74"/>
+    <line x1="160" y1="68" x2="160" y2="74"/>
+    <line x1="240" y1="68" x2="240" y2="74"/>
+    <line x1="320" y1="68" x2="320" y2="74"/>
+  </g>
+  <g fill="#888" font-size="9" font-family="JetBrains Mono" text-anchor="middle">
+    <text x="0"   y="88">0</text>
+    <text x="80"  y="88">5</text>
+    <text x="160" y="88">10</text>
+    <text x="240" y="88">15</text>
+    <text x="320" y="88">20 min</text>
+  </g>
+</svg>`,
+      example: "-- Flink SQL\nSELECT window_start, COUNT(*)\nFROM TABLE(\n  TUMBLE(TABLE orders,\n         DESCRIPTOR(ts),\n         INTERVAL '5' MINUTE))\nGROUP BY window_start, window_end;\n\n// DataStream API\nstream\n  .keyBy(e -> e.userId)\n  .window(TumblingEventTimeWindows.of(Time.minutes(5)))\n  .sum(\"amount\");",
+      link: "https://developer.confluent.io/courses/flink-sql/window-aggregations/" },
+    { term: "Sliding window", def: "Fixed size but overlapping; a new window starts before the previous one closes.",
+      why: "Useful for rolling metrics like 'last 10 minutes, updated every 1 minute'. Each event can appear in multiple windows.",
+      how: "Use the `HOP` window TVF. State and compute cost scale with the overlap ratio (window size / slide).",
+      diagram: `<svg viewBox="0 0 360 120" xmlns="http://www.w3.org/2000/svg">
+  <text x="0" y="10" fill="#aaa" font-size="10" font-family="Inter">10-min size, sliding by 1 min - events appear in many windows</text>
+  <g fill="#b09dff">
+    <rect x="0"   y="20" width="160" height="6" rx="3" opacity="0.85"/>
+    <rect x="32"  y="30" width="160" height="6" rx="3" opacity="0.7"/>
+    <rect x="64"  y="40" width="160" height="6" rx="3" opacity="0.55"/>
+    <rect x="96"  y="50" width="160" height="6" rx="3" opacity="0.42"/>
+    <rect x="128" y="60" width="160" height="6" rx="3" opacity="0.3"/>
+  </g>
+  <text x="80"  y="26" text-anchor="middle" fill="#0a0a0a" font-size="8" font-family="Inter" font-weight="600">W1: 0-10</text>
+  <text x="112" y="36" text-anchor="middle" fill="#0a0a0a" font-size="8" font-family="Inter" font-weight="600">W2: 2-12</text>
+  <text x="144" y="46" text-anchor="middle" fill="#0a0a0a" font-size="8" font-family="Inter" font-weight="600">W3: 4-14</text>
+  <line x1="0" y1="82" x2="320" y2="82" stroke="rgba(255,255,255,0.3)"/>
+  <g stroke="rgba(255,255,255,0.45)">
+    <line x1="0"   y1="79" x2="0"   y2="85"/>
+    <line x1="80"  y1="79" x2="80"  y2="85"/>
+    <line x1="160" y1="79" x2="160" y2="85"/>
+    <line x1="240" y1="79" x2="240" y2="85"/>
+    <line x1="320" y1="79" x2="320" y2="85"/>
+  </g>
+  <g fill="#888" font-size="9" font-family="JetBrains Mono" text-anchor="middle">
+    <text x="0"   y="99">0</text>
+    <text x="80"  y="99">5</text>
+    <text x="160" y="99">10</text>
+    <text x="240" y="99">15</text>
+    <text x="320" y="99">20 min</text>
+  </g>
+  <text x="0" y="115" fill="#666" font-size="9" font-family="Inter" font-style="italic">(only first few windows shown; the pattern continues)</text>
+</svg>`,
+      example: "-- 'Last 10 minutes, recomputed every minute'\nSELECT window_start, AVG(latency_ms)\nFROM TABLE(\n  HOP(TABLE requests,\n      DESCRIPTOR(ts),\n      INTERVAL '1'  MINUTE,   -- slide\n      INTERVAL '10' MINUTE))  -- size\nGROUP BY window_start, window_end;",
+      link: "https://developer.confluent.io/courses/flink-sql/window-aggregations/" },
+    { term: "Session window", def: "Groups events by inactivity gap; closes when no event arrives for N ms.",
+      why: "Natural fit for user session analytics: groups a user's activity until they go idle, regardless of fixed time boundaries.",
+      how: "Use the `SESSION` window TVF in SQL, or `EventTimeSessionWindows.withGap(...)` in the DataStream API.",
+      diagram: `<svg viewBox="0 0 360 110" xmlns="http://www.w3.org/2000/svg">
+  <text x="0" y="10" fill="#aaa" font-size="10" font-family="Inter">Sessions end after 30 min with no events</text>
+  <rect x="10"  y="32" width="120" height="26" rx="4" fill="rgba(128,108,255,0.18)" stroke="rgba(128,108,255,0.55)"/>
+  <rect x="210" y="32" width="100" height="26" rx="4" fill="rgba(128,108,255,0.18)" stroke="rgba(128,108,255,0.55)"/>
+  <text x="70"  y="26" text-anchor="middle" fill="#b09dff" font-size="9" font-family="Inter">Session 1</text>
+  <text x="260" y="26" text-anchor="middle" fill="#b09dff" font-size="9" font-family="Inter">Session 2</text>
+  <text x="170" y="50" text-anchor="middle" fill="#888" font-size="9" font-family="Inter" font-style="italic">idle &gt; 30 min</text>
+  <g fill="#b09dff">
+    <circle cx="25"  cy="45" r="3"/><circle cx="50"  cy="45" r="3"/><circle cx="75"  cy="45" r="3"/>
+    <circle cx="100" cy="45" r="3"/><circle cx="120" cy="45" r="3"/>
+    <circle cx="225" cy="45" r="3"/><circle cx="250" cy="45" r="3"/>
+    <circle cx="275" cy="45" r="3"/><circle cx="298" cy="45" r="3"/>
+  </g>
+  <line x1="0" y1="74" x2="340" y2="74" stroke="rgba(255,255,255,0.3)"/>
+  <text x="0"   y="92" fill="#666" font-size="9" font-family="Inter" font-style="italic">time</text>
+  <text x="340" y="92" text-anchor="end" fill="#666" font-size="9" font-family="Inter" font-style="italic">→</text>
+</svg>`,
+      example: "-- Flink SQL (sessions per user, 30-min gap)\nSELECT user_id, window_start, window_end, COUNT(*)\nFROM TABLE(\n  SESSION(TABLE clicks PARTITION BY user_id,\n          DESCRIPTOR(ts),\n          INTERVAL '30' MINUTE))\nGROUP BY user_id, window_start, window_end;\n\n// DataStream API\nstream\n  .keyBy(e -> e.userId)\n  .window(EventTimeSessionWindows.withGap(Time.minutes(30)))\n  .process(new MySessionAggregator());",
+      link: "https://developer.confluent.io/courses/flink-sql/window-aggregations/" },
+  ]},
+  { id: "ops", label: "Operators & processing", cls: "s-ops", accent: "#FFDC00", entries: [
+    { term: "Source", def: "Where data enters the job - Kafka topic, file, database connector, etc.",
+      why: "The source determines your stream's boundedness, time semantics, and parallelism. A misconfigured source (wrong offsets, no watermarks) breaks the whole pipeline.",
+      how: "In SQL: CREATE TABLE with connector options. In DataStream: env.fromSource() with a Source implementation. Always set watermark strategy on sources.",
+      link: "https://developer.confluent.io/courses/apache-flink/kafka-with-flink/" },
+    { term: "Sink", def: "Where data exits the job - Kafka, Iceberg, Postgres, S3, etc.",
+      why: "Sink choice determines your exactly-once guarantees. Only sinks that support 2-phase commit (Kafka, Iceberg) give end-to-end exactly-once.",
+      how: "In SQL: INSERT INTO target SELECT ... FROM source. In DataStream: .sinkTo(). Check whether your sink supports EXACTLY_ONCE or only AT_LEAST_ONCE.",
+      link: "https://developer.confluent.io/courses/apache-flink/kafka-with-flink/" },
+    { term: "Operator", def: "Any transformation step in the DAG: map, filter, join, aggregate, etc.",
+      why: "Each operator can have independent parallelism and state. Understanding the DAG helps you tune performance and diagnose bottlenecks.",
+      how: "In SQL, operators are generated automatically. In DataStream: .map(), .flatMap(), .keyBy().process() etc. Set setParallelism() per operator for tuning.",
+      link: "https://developer.confluent.io/courses/apache-flink/runtime/" },
+    { term: "KeyBy", def: "Partitions the stream by a key so all events with the same key go to the same parallel slot.",
+      why: "Required before any keyed operation (aggregation, keyed state, windows per key). Incorrect key choice causes hot partitions and skew.",
+      how: "SQL: GROUP BY or PARTITION BY automatically imply keyBy. DataStream: .keyBy(event -> event.userId). Choose high-cardinality, well-distributed keys.",
+      link: "https://developer.confluent.io/courses/apache-flink/stateful-stream-processing/" },
+    { term: "Regular join", def: "Joins two streams; must buffer both sides in state indefinitely - state grows without bound.",
+      why: "Correct for joining streams where either side can update at any time, but state management is critical. Unbounded state will eventually OOM.",
+      how: "Use with state TTL or time-bounded interval joins to limit state. For large tables, prefer lookup join or delta join instead.",
+      example: "-- Both sides buffered in state forever\nSELECT o.id, o.amount, c.name\nFROM orders AS o\nJOIN customers AS c\n  ON o.customer_id = c.id;\n\n-- Cap state growth with table option:\n-- 'table.exec.state.ttl' = '1 d'",
+      link: "https://developer.confluent.io/courses/flink-sql/streaming-joins/" },
+    { term: "Interval join", def: "Time-bounded join: rows match only if their event-time timestamps fall within a fixed interval of each other.",
+      why: "State can be cleaned once the watermark passes the interval upper bound - bounded memory, unlike a regular join.",
+      how: "Add a BETWEEN predicate on the event-time columns of both sides. Watermarks on both inputs are required.",
+      example: "SELECT o.id, p.method\nFROM orders AS o, payments AS p\nWHERE o.order_id = p.order_id\n  AND p.event_time BETWEEN\n        o.event_time - INTERVAL '5' MINUTE\n    AND o.event_time + INTERVAL '1' HOUR;",
+      link: "https://developer.confluent.io/courses/flink-sql/streaming-joins/" },
+    { term: "Lookup join", def: "Enriches a stream by looking up a (usually slower-changing) external table at query time.",
+      why: "Zero state overhead vs regular join. Ideal for enriching events with reference data (user profiles, product catalog) that changes infrequently.",
+      how: "SQL: JOIN dim_table FOR SYSTEM_TIME AS OF event_table.proc_time. Use async lookup + caching to avoid hammering the external system.",
+      example: "-- Enrich orders with the current customer row\nSELECT o.id, o.amount, c.tier\nFROM orders AS o\nJOIN customers FOR SYSTEM_TIME AS OF o.proc_time AS c\n  ON o.customer_id = c.id;\n\n-- customers connector must support lookup\n-- e.g. 'jdbc', 'hbase', 'lookup-only' connectors",
+      link: "https://developer.confluent.io/courses/flink-sql/streaming-joins/" },
+    { term: "Delta join", def: "Flink-specific join that replaces large join state with bidirectional lookups against source tables.",
+      why: "Addresses the core pain of regular joins: state that grows forever. Dramatically reduces memory for CDC-style join pipelines.",
+      how: "Available in Flink 2.1+. Used automatically by the planner when tables have primary keys and the source supports lookup. Verify in the query plan.",
+      example: "-- Plain join syntax - planner picks delta join\n-- when both tables have a PRIMARY KEY and the\n-- source connector supports lookup.\nSELECT o.id, l.product, l.quantity\nFROM orders AS o\nJOIN order_lines AS l\n  ON o.id = l.order_id;\n\n-- Verify with EXPLAIN - look for 'DeltaJoin'\n-- in the physical plan.",
+      link: "https://developer.confluent.io/courses/flink-sql/streaming-joins/" },
+    { term: "Async I/O", def: "Non-blocking enrichment from an external system; many lookups in flight simultaneously.",
+      why: "Synchronous lookups block the operator thread and destroy throughput. Async I/O keeps the pipeline saturated while waiting for external calls.",
+      how: "DataStream: AsyncDataStream.unorderedWait(stream, new MyAsyncFunction(), timeout, TimeUnit.MS). Implement AsyncFunction with an async HTTP/DB client.",
+      example: "// DataStream API - non-blocking enrichment\nDataStream<Enriched> out = AsyncDataStream\n    .unorderedWait(\n        orders,\n        new HttpEnrichFunction(),  // AsyncFunction\n        1000,                      // timeout (ms)\n        TimeUnit.MILLISECONDS,\n        100);                      // capacity\n\n// In Flink SQL: just use a lookup join - the\n// connector handles async + caching for you." },
+  ]},
+  { id: "state", label: "State", cls: "s-state", accent: "#C9EDF0", entries: [
+    { term: "Operator state", def: "State scoped to one parallel instance of an operator (e.g. a Kafka offset per partition).",
+      why: "Used internally by sources and sinks to track progress. Rarely needed directly unless building custom sources or exactly-once sinks.",
+      how: "Implement CheckpointedFunction. getListState() gives you a ListStateDescriptor that is checkpointed and restored on recovery.",
+      link: "https://developer.confluent.io/courses/apache-flink/stateful-stream-processing/" },
+    { term: "Keyed state", def: "State scoped to a key (after keyBy); each key gets its own isolated state entry.",
+      why: "The primary state abstraction for business logic: per-user counters, per-session windows, per-device aggregates. Automatically partitioned and scaled.",
+      how: "In a KeyedProcessFunction: getRuntimeContext().getState(new ValueStateDescriptor<>(...)) to get/set state. Always set state TTL to avoid unbounded growth.",
+      link: "https://developer.confluent.io/courses/apache-flink/stateful-stream-processing/" },
+    { term: "State backend", def: "Where state is physically stored: HashMapStateBackend (heap) or RocksDB (disk).",
+      why: "Determines memory footprint and performance. HashMapStateBackend is fast but limited by heap. RocksDB handles TB-scale state but has higher latency.",
+      how: "Set in flink-conf.yaml: state.backend: rocksdb. Or per-job: env.setStateBackend(new EmbeddedRocksDBStateBackend()). Use RocksDB for state > a few GB.",
+      link: "https://developer.confluent.io/courses/apache-flink/stateful-stream-processing/" },
+    { term: "TTL (state TTL)", def: "Automatically expires state entries after an idle period, keeping state size bounded.",
+      why: "Without TTL, keyed state grows forever as new keys are seen. Old keys (inactive users, completed orders) accumulate and eventually cause OOM.",
+      how: "StateTtlConfig ttl = StateTtlConfig.newBuilder(Duration.ofHours(24)).build(); descriptor.enableTimeToLive(ttl). Also configurable in Flink SQL via table options.",
+      link: "https://developer.confluent.io/courses/apache-flink/stateful-stream-processing/" },
+  ]},
+  { id: "fault", label: "Fault tolerance & deployment", cls: "s-fault", accent: "#FF7C52", entries: [
+    { term: "Checkpoint", def: "Periodic consistent snapshot of all operator state + stream offsets; used for automatic recovery after failure.",
+      why: "The core of Flink's fault tolerance. Without checkpoints, any failure means restarting from scratch and losing all in-progress work.",
+      how: "Enable in config: execution.checkpointing.interval: 1min. Or: env.enableCheckpointing(60_000). State is written to the configured checkpoints directory (S3, HDFS, local).",
+      link: "https://developer.confluent.io/courses/apache-flink/checkpoints/" },
+    { term: "Savepoint", def: "Manually triggered checkpoint; used for intentional stops, upgrades, and job migrations.",
+      why: "Lets you stop a job, upgrade the code or cluster, and resume from exactly where it left off - no reprocessing required.",
+      how: "CLI: flink savepoint <job-id> [target-dir]. Resume: flink run -s <savepoint-path> my-job.jar. Also triggered by ALTER MATERIALIZED TABLE ... SUSPEND.",
+      link: "https://developer.confluent.io/courses/apache-flink/checkpoints/" },
+    { term: "Exactly-once", def: "Each record affects the output exactly once, even after recovery.",
+      why: "The gold standard for financial, audit, and compliance use cases where duplicates or missing records are unacceptable.",
+      how: "Requires: checkpointing enabled + a sink with 2-phase commit support (Kafka, Iceberg, JDBC with transactions). Set CheckpointingMode.EXACTLY_ONCE.",
+      link: "https://developer.confluent.io/courses/apache-flink/checkpoints/" },
+    { term: "At-least-once", def: "Records never lost, but may be processed (and emitted) more than once after recovery.",
+      why: "Lower overhead than exactly-once. Acceptable when downstream is idempotent (e.g. writing to a key-value store that deduplicates by key).",
+      how: "Default mode for many sinks. If your sink doesn't support transactions, you're at-least-once regardless of Flink config. Design sinks to be idempotent.",
+      link: "https://developer.confluent.io/courses/apache-flink/checkpoints/" },
+    { term: "Parallelism", def: "How many parallel instances of an operator run simultaneously.",
+      why: "The primary lever for scaling throughput. Too low = bottleneck. Too high = wasted resources and excessive state partitioning.",
+      how: "Global default in config: parallelism.default: 4. Per-operator: .setParallelism(8). Match source parallelism to Kafka partition count for best balance.",
+      link: "https://developer.confluent.io/courses/apache-flink/runtime/" },
+    { term: "Task slot", def: "A fixed unit of resource on a TaskManager; each parallel subtask occupies one slot.",
+      why: "Slots determine how many parallel tasks can run on a worker. Misconfiguring slots vs parallelism causes jobs to fail to schedule.",
+      how: "Set taskmanager.numberOfTaskSlots in config. A common pattern: 1 slot per CPU core. The scheduler places subtasks into slots across TaskManagers.",
+      link: "https://developer.confluent.io/courses/apache-flink/runtime/" },
+  ]},
+  { id: "arch", label: "Architecture", cls: "s-arch", accent: "#5d61ee", entries: [
+    { term: "JobManager", def: "The coordinator process: schedules tasks, triggers checkpoints, handles failures, exposes the REST/Web UI.",
+      why: "Single point of coordination for a Flink job. In production, run the JobManager in HA mode (ZooKeeper or Kubernetes) so a JM failure doesn't kill the whole cluster.",
+      how: "HA config: `high-availability: zookeeper` + `high-availability.storageDir`. In Kubernetes, the Flink Kubernetes Operator manages JM HA automatically.",
+      link: "https://developer.confluent.io/courses/apache-flink/runtime/" },
+    { term: "TaskManager", def: "The worker process: executes operator subtasks in its slots and holds local keyed state.",
+      why: "Where your actual data processing happens. Memory and CPU sizing of TaskManagers directly determine job throughput and state capacity.",
+      how: "Size via `taskmanager.memory.process.size`. Use RocksDB state backend + SSD-backed volumes for state-heavy jobs. Scale out by adding more TaskManager pods or containers.",
+      link: "https://developer.confluent.io/courses/apache-flink/runtime/" },
+  ]},
+  { id: "sql", label: "SQL & Table API", cls: "s-sql", accent: "#D4E84A", entries: [
+    { term: "Dynamic table", def: "A table that changes over time, backed by a stream; Flink SQL's core abstraction.",
+      why: "Lets you write familiar SQL (SELECT, JOIN, GROUP BY) over streaming data. The engine handles translating SQL semantics into streaming operators.",
+      how: "Every CREATE TABLE in Flink SQL is a dynamic table. Query it with SELECT - the result is also a dynamic table (another stream).",
+      link: "https://developer.confluent.io/courses/flink-sql/flink-sql-vs-sql-databases/" },
+    { term: "Process Table Function", def: "User-defined function that takes one or more tables as input, can hold per-key state and timers, and returns a table. The SQL equivalent of a KeyedProcessFunction.",
+      why: "Lets you express custom stateful logic - pattern detection, ad-hoc windows, per-row side effects - directly in SQL, without dropping into the DataStream API. Composable with the rest of Flink SQL.",
+      how: "Extend `ProcessTableFunction<T>`, define an `eval()` method whose arguments are annotated with `@ArgumentHint(TABLE_AS_SET)` or `TABLE_AS_ROW`, optionally a per-key `State` POJO, and a `Context` for timers and time. Register the function in the catalog and call it as a TVF.",
+      example: "// Custom PTF: emit a row only when a user starts a new session (>30 min idle)\npublic class SessionStart\n    extends ProcessTableFunction<Row> {\n\n  public static class S { public Long lastSeen; }\n\n  public void eval(\n      Context ctx,\n      S state,\n      @ArgumentHint(TABLE_AS_SET) Row in) {\n    long now = ctx.timeContext(TimeContext.EVENT).time();\n    if (state.lastSeen == null\n        || now - state.lastSeen > 1800_000) {\n      collect(Row.of(in.getField(\"user_id\"), now));\n    }\n    state.lastSeen = now;\n  }\n}\n\n-- Flink SQL: call it like any table-valued function\nSELECT * FROM SessionStart(\n  TABLE clicks PARTITION BY user_id);" },
+    { term: "CTAS", def: "CREATE TABLE AS SELECT - defines a table and immediately starts an INSERT job to populate it.",
+      why: "Combines DDL and DML in one statement for convenience. But the resulting INSERT job is decoupled from the table definition - you manage them separately.",
+      how: "CREATE TABLE sink WITH (...) AS SELECT ... FROM source. Note: if the job dies, it won't auto-restart. Prefer Materialized Tables for managed lifecycle.",
+      link: "https://developer.confluent.io/courses/flink-sql/flink-sql-vs-sql-databases/" },
+    { term: "Materialized Table", def: "A table whose refresh query is part of its DDL; Flink manages lifecycle, schema evolution, and refresh scheduling. Two parameters control behaviour: `FRESHNESS` (max acceptable lag) and `REFRESH_MODE` (CONTINUOUS streaming job vs FULL cron-scheduled INSERT OVERWRITE).",
+      why: "Solves the DDL/DML coupling problem of CTAS - the engine restarts the refresh job on failure, handles schema evolution cleanly, and supports SUSPEND/RESUME. `FRESHNESS` is a single knob that abstracts away checkpoint intervals and cron expressions; change it and Flink reconfigures the underlying job. `REFRESH_MODE` picks the right execution model for the source: CONTINUOUS for unbounded (Kafka, CDC) with near-real-time updates, FULL for bounded sources where periodic recomputation has more predictable resource usage.",
+      how: "`CREATE MATERIALIZED TABLE t FRESHNESS = INTERVAL '5' MINUTE REFRESH_MODE = CONTINUOUS AS SELECT ...`. Omit `FRESHNESS` to use the system default (usually 3 min continuous). For `REFRESH_MODE = FULL`, the interval must be a factor of 60 minutes or 24 hours, requires the SQL Gateway scheduler, and is partition-aware (scheduled runs only refresh the current partition). Trigger a manual full refresh with `ALTER MATERIALIZED TABLE t REFRESH`. Requires a catalog that supports Materialized Tables (Paimon, test-filesystem).",
+      example: "-- Continuous: persistent streaming job, near-real-time\nCREATE MATERIALIZED TABLE orders_by_user\n  FRESHNESS = INTERVAL '1' MINUTE\n  REFRESH_MODE = CONTINUOUS\nAS\n  SELECT user_id, COUNT(*) AS n, SUM(amount) AS total\n  FROM orders\n  GROUP BY user_id;\n\n-- Full: cron-scheduled INSERT OVERWRITE\nCREATE MATERIALIZED TABLE daily_revenue\n  PARTITIONED BY (dt)\n  FRESHNESS = INTERVAL '1' HOUR\n  REFRESH_MODE = FULL\nAS\n  SELECT DATE_FORMAT(ts, 'yyyy-MM-dd') AS dt,\n         SUM(amount) AS revenue\n  FROM orders\n  GROUP BY DATE_FORMAT(ts, 'yyyy-MM-dd');\n\n-- Manage lifecycle\nALTER MATERIALIZED TABLE orders_by_user SUSPEND;\nALTER MATERIALIZED TABLE orders_by_user RESUME;\nALTER MATERIALIZED TABLE daily_revenue REFRESH;",
+      link: "https://developer.confluent.io/courses/flink-sql/flink-sql-vs-sql-databases/" },
+    { term: "Catalog", def: "Stores table/database metadata; required for Materialized Tables.",
+      why: "Without a persistent catalog, table definitions live only in the session. A catalog survives restarts and is shared across sessions and jobs.",
+      how: "`CREATE CATALOG my_cat WITH ('type'='paimon', ...)`. `USE CATALOG my_cat`. Paimon is the recommended production catalog for Materialized Tables.",
+      link: "https://developer.confluent.io/courses/flink-sql/flink-sql-vs-sql-databases/" },
+    { term: "SQL Gateway", def: "REST server that accepts SQL and submits jobs to the cluster; hosts the embedded scheduler used by Materialized Tables in FULL mode.",
+      why: "Decouples SQL submission from the SQL Client session. Lets external tools (BI tools, schedulers) submit Flink SQL over HTTP.",
+      how: "`./bin/sql-gateway.sh start --configDir conf/`. Connect the SQL Client via `--endpoint http://localhost:8083`. Required for Materialized Table scheduled refreshes.",
+      link: "https://developer.confluent.io/courses/flink-sql/flink-sql-runtime/" },
+  ]},
+];
+
+// ── Build DOM ──────────────────────────────────────────────────────────────
+const grid = document.getElementById('grid');
+
+SECTIONS.forEach(sec => {
+  const card = document.createElement('div');
+  card.className = `section ${sec.cls}`;
+
+  const header = document.createElement('div');
+  header.className = 'section-header';
+  header.innerHTML = `<div class="bar"></div>${sec.label}`;
+  card.appendChild(header);
+
+  sec.entries.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'entry';
+    row.dataset.term = entry.term;
+    row.dataset.def  = entry.def;
+    row.dataset.why  = entry.why;
+    row.dataset.how  = entry.how;
+    if (entry.example) row.dataset.example = entry.example;
+    if (entry.diagram) row.dataset.diagram = entry.diagram;
+    if (entry.link) {
+      row.dataset.link = entry.link;
+      row.classList.add('has-link');
+      row.addEventListener('click', () => window.open(entry.link, '_blank', 'noopener'));
+    }
+    row.dataset.accent = sec.accent;
+    row.innerHTML = `
+      <span class="entry-term">${entry.term}</span>
+      <span class="entry-dot"></span>
+      <span class="entry-def">${entry.def}</span>
+      <span class="entry-hint">↗</span>`;
+    card.appendChild(row);
+  });
+
+  grid.appendChild(card);
+});
+
+// ── Naïve SQL/Java syntax highlight for popup examples ─────────────────────
+const SQL_KEYWORDS = /\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|AS|AND|OR|NOT|IN|BETWEEN|FOR|SYSTEM_TIME|OF|GROUP|BY|ORDER|HAVING|INTERVAL|TUMBLE|HOP|SESSION|DESCRIPTOR|TABLE|INSERT|INTO|CREATE|WITH|PARTITION|PROCTIME|NULL|TRUE|FALSE|CASE|WHEN|THEN|ELSE|END)\b/g;
+const JAVA_KEYWORDS = /\b(new|public|private|return|class|void|final|static|import|package|if|else|for|while|throw|catch|try|null|true|false)\b/g;
+function highlight(code) {
+  let html = code
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  // comments
+  html = html.replace(/(--[^\n]*|\/\/[^\n]*)/g, '<span data-h="cm">$1</span>');
+  // strings
+  html = html.replace(/('[^']*')/g, '<span data-h="str">$1</span>');
+  // keywords (use data-h to avoid collisions with the word `class` in our own markup)
+  html = html.replace(SQL_KEYWORDS, '<span data-h="kw">$1</span>');
+  html = html.replace(JAVA_KEYWORDS, '<span data-h="kw">$1</span>');
+  return html;
+}
+
+// Render free-text fields, turning `code` markup into inline-code pills.
+function renderInline(text) {
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return escaped.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+}
+
+// ── Popup logic ────────────────────────────────────────────────────────────
+const popup        = document.getElementById('popup');
+const popupDot     = document.getElementById('popup-dot');
+const popupTerm    = document.getElementById('popup-term');
+const popupDesc    = document.getElementById('popup-desc');
+const popupWhy     = document.getElementById('popup-why');
+const popupHow     = document.getElementById('popup-how');
+const popupEx      = document.getElementById('popup-example');
+const popupDiag    = document.getElementById('popup-diagram');
+const popupLink    = document.getElementById('popup-link');
+const popupPin     = document.getElementById('popup-pin');
+const popupClose   = document.getElementById('popup-close');
+
+let activeEntry = null;
+let docked = false;
+let hideTimer = null;
+
+function cancelHide() { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } }
+function scheduleHide(delay = 180) {
+  if (docked) return;
+  cancelHide();
+  hideTimer = setTimeout(() => {
+    activeEntry = null;
+    popup.classList.remove('visible');
+  }, delay);
+}
+
+function setDocked(v) {
+  docked = v;
+  popup.classList.toggle('docked', v);
+  popupPin.classList.toggle('active', v);
+  popupPin.title = v ? 'Undock popup' : 'Dock popup';
+  if (v) cancelHide();
+}
+
+popup.addEventListener('mouseenter', cancelHide);
+popup.addEventListener('mouseleave', () => scheduleHide());
+
+// Drag the popup by its header when docked
+let dragging = false;
+let dragDx = 0, dragDy = 0;
+const popupHeader = popup.querySelector('.popup-header');
+popupHeader.addEventListener('mousedown', e => {
+  if (e.target.closest('button')) return; // don't start a drag from the pin/close buttons
+  dragging = true;
+  // Auto-pin: dragging the popup means the user wants it to stay where dropped
+  if (!docked) setDocked(true);
+  cancelHide();
+  const rect = popup.getBoundingClientRect();
+  dragDx = e.clientX - rect.left;
+  dragDy = e.clientY - rect.top;
+  popup.classList.add('dragging');
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const margin = 8;
+  const pw = popup.offsetWidth;
+  const ph = popup.offsetHeight;
+  let x = e.clientX - dragDx;
+  let y = e.clientY - dragDy;
+  x = Math.max(margin, Math.min(x, window.innerWidth  - pw - margin));
+  y = Math.max(margin, Math.min(y, window.innerHeight - ph - margin));
+  popup.style.left = x + 'px';
+  popup.style.top  = y + 'px';
+});
+document.addEventListener('mouseup', () => {
+  if (!dragging) return;
+  dragging = false;
+  popup.classList.remove('dragging');
+});
+
+popupPin.addEventListener('click', e => {
+  e.stopPropagation();
+  setDocked(!docked);
+});
+popupClose.addEventListener('click', e => {
+  e.stopPropagation();
+  setDocked(false);
+  activeEntry = null;
+  popup.classList.remove('visible');
+});
+popupLink.addEventListener('click', () => {
+  if (activeEntry && activeEntry.dataset.link) {
+    window.open(activeEntry.dataset.link, '_blank', 'noopener');
+  }
+});
+
+function showPopup(entry, e) {
+  cancelHide();
+  activeEntry = entry;
+  const accent = entry.dataset.accent;
+  popupDot.style.background  = accent;
+  popupTerm.textContent = entry.dataset.term;
+  popupDesc.innerHTML = renderInline(entry.dataset.def);
+  popupWhy.innerHTML  = renderInline(entry.dataset.why);
+  popupHow.innerHTML  = renderInline(entry.dataset.how);
+  const hasDiagram = !!entry.dataset.diagram;
+  const hasExample = !!entry.dataset.example;
+  if (hasDiagram) popupDiag.innerHTML = entry.dataset.diagram;
+  if (hasExample) popupEx.innerHTML = highlight(entry.dataset.example);
+  popup.classList.toggle('has-diagram', hasDiagram);
+  popup.classList.toggle('has-example', hasExample);
+  if (entry.dataset.link) {
+    popupLink.classList.add('visible');
+  } else {
+    popupLink.classList.remove('visible');
+  }
+  popup.classList.add('visible');
+  // reset scroll to top on each new entry
+  popup.scrollTop = 0;
+  positionPopup(e);
+}
+
+function positionPopup(e) {
+  if (docked) return;
+  const margin = 8;
+  const pw = popup.offsetWidth || 380;
+  const ph = Math.min(popup.scrollHeight || 280, window.innerHeight * 0.75);
+  const vw = window.innerWidth, vh = window.innerHeight;
+
+  // Horizontal: try right of cursor, fall back to left, finally clamp to viewport
+  let x = e.clientX + 16;
+  if (x + pw > vw - margin) {
+    const leftX = e.clientX - pw - 16;
+    x = leftX >= margin ? leftX : Math.max(margin, vw - pw - margin);
+  }
+  if (x < margin) x = margin;
+
+  // Vertical: clamp so popup never goes off-screen
+  let y = e.clientY + 8;
+  if (y + ph > vh - margin) y = Math.max(margin, vh - ph - margin);
+  if (y < margin) y = margin;
+
+  popup.style.left = x + 'px';
+  popup.style.top  = y + 'px';
+}
+
+document.querySelectorAll('.entry').forEach(row => {
+  row.addEventListener('mouseenter', e => showPopup(row, e));
+  row.addEventListener('mouseleave', () => scheduleHide());
+});
+
+// When the popup is docked it can sit on top of entries and block their mouseenter.
+// Watch the cursor globally: if it's over an entry (even one beneath the popup), update content.
+document.addEventListener('mousemove', e => {
+  if (!docked || dragging) return;
+  const stack = document.elementsFromPoint(e.clientX, e.clientY);
+  for (const el of stack) {
+    if (el === popup || popup.contains(el)) return; // cursor over the popup itself
+    const row = el.closest && el.closest('.entry');
+    if (row) {
+      if (row !== activeEntry) showPopup(row, e);
+      return;
+    }
+  }
+});
+</script>
+</body>
+</html>

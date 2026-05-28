@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apache Kafka Cheatsheet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --neu-blue: #0056F9;
+    --polar:    #009FFF;
+    --glow:     #00EB92;
+    --charcoal: #1E1E1E;
+    --snow:     #FAFAFA;
+    --slate:    #767676;
+    --zest:     #FFDC00;
+    --sienna:   #FF7C52;
+    --sky:      #C9EDF0;
+    --indigo:   #1E21D0;
+    --violet:   #806CFF;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--charcoal);
+    color: var(--snow);
+    min-height: 100vh;
+    padding: 0 0 48px;
+  }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(90deg, var(--neu-blue), var(--polar));
+    padding: 28px 40px 22px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .header-logo {
+    height: 52px;
+    width: auto;
+    max-width: 180px;
+    flex-shrink: 0;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+  .header-text { flex: 1; min-width: 0; }
+  .header-back {
+    display: inline-block;
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    margin-bottom: 4px;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, transform 0.15s;
+  }
+  .header-back:hover { color: #fff; transform: translateX(-2px); }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 2px;
+    background: var(--glow);
+  }
+  .header-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+  .header-title span { font-weight: 400; opacity: 0.9; }
+  .header-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 16px 40px 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ── Section card ── */
+  .section {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .section-header {
+    padding: 10px 14px 9px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-header .bar {
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Entry row ── */
+  .entry {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    padding: 7px 14px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.12s;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .entry:hover { background: rgba(255,255,255,0.06); }
+  .entry-term {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    width: 180px;
+    flex-shrink: 0;
+    padding-right: 10px;
+  }
+  .entry-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin: 0 10px;
+    position: relative;
+    top: -1px;
+    opacity: 0.7;
+  }
+  .entry-def {
+    font-size: 12px;
+    color: #aaa;
+    line-height: 1.5;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entry-hint {
+    font-size: 10px;
+    opacity: 0.3;
+    margin-left: 8px;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+  .entry:hover .entry-hint { opacity: 0.7; }
+
+  /* ── Popup tooltip ── */
+  .popup {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    width: 360px;
+    max-height: 75vh;
+    background: #111;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 0;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    pointer-events: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .popup::-webkit-scrollbar { width: 8px; }
+  .popup::-webkit-scrollbar-track { background: transparent; }
+  .popup::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  .popup::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+  .popup.visible { display: block; }
+  .popup-header {
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+    user-select: none;
+  }
+  .popup-controls {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .popup-btn {
+    background: transparent;
+    border: 0;
+    padding: 2px 7px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    border-radius: 3px;
+    line-height: 1;
+    font-family: inherit;
+    transition: color 0.15s, background 0.15s;
+  }
+  .popup-btn:hover { color: var(--snow); background: rgba(255,255,255,0.08); }
+  .popup-pin.active { color: var(--glow); }
+  .popup-close { display: none; }
+  .popup.docked .popup-close { display: inline-block; }
+  .popup .popup-header { cursor: grab; }
+  .popup.dragging .popup-header,
+  .popup.dragging { cursor: grabbing; user-select: none; }
+  .popup-header .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .popup-term {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--snow);
+  }
+  .popup-body { padding: 14px 16px 16px; }
+  .popup-section-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.4;
+    margin-bottom: 4px;
+  }
+  .popup-text {
+    font-size: 12px;
+    line-height: 1.65;
+    color: #ccc;
+    margin-bottom: 14px;
+  }
+  .popup-text:last-child { margin-bottom: 0; }
+  .popup-label-why { color: var(--glow); }
+  .popup-label-how { color: var(--polar); }
+  .popup-link {
+    display: none;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    font-size: 11px;
+    color: var(--polar);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .popup-link.visible { display: block; }
+  .popup-link::before { content: '↗ '; opacity: 0.7; }
+  .popup-link { cursor: pointer; }
+  .popup-link:hover { text-decoration: underline; }
+  .inline-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,0.07);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #e6e6e6;
+    border: 1px solid rgba(255,255,255,0.05);
+    white-space: nowrap;
+  }
+  .entry.has-link .entry-hint { color: var(--polar); opacity: 0.6; }
+  .entry.has-link:hover .entry-hint { opacity: 1; }
+
+  /* ── Section color themes ── */
+  .s-core     { background: #1e1500; } .s-core     .section-header { background: #2a1e00; color: var(--zest); }    .s-core     .bar, .s-core     .entry-dot { background: var(--zest); }    .s-core     .entry-term { color: #ffe566; }
+  .s-producer { background: #1e1008; } .s-producer .section-header { background: #2a1810; color: var(--sienna); }  .s-producer .bar, .s-producer .entry-dot { background: var(--sienna); }  .s-producer .entry-term { color: #ffb090; }
+  .s-consumer { background: #0a1f16; } .s-consumer .section-header { background: #0d2a1e; color: var(--glow); }    .s-consumer .bar, .s-consumer .entry-dot { background: var(--glow); }    .s-consumer .entry-term { color: #5dffc0; }
+  .s-storage  { background: #0a1628; } .s-storage  .section-header { background: #0d1f3a; color: #4a9eff; }        .s-storage  .bar, .s-storage  .entry-dot { background: var(--neu-blue); } .s-storage  .entry-term { color: #7ab8ff; }
+  .s-eco      { background: #130e24; } .s-eco      .section-header { background: #1c1435; color: var(--violet); }  .s-eco      .bar, .s-eco      .entry-dot { background: var(--violet); }  .s-eco      .entry-term { color: #b09dff; }
+  .s-sec      { background: #0a1e24; } .s-sec      .section-header { background: #0d2830; color: var(--sky); }     .s-sec      .bar, .s-sec      .entry-dot { background: var(--sky); }     .s-sec      .entry-term { color: #a0dfe8; }
+
+  /* ── Overview ── */
+  .overview {
+    max-width: 1200px;
+    margin: 24px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .overview-what {
+    background: #0a1628;
+    border: 1px solid rgba(0,86,249,0.25);
+    border-radius: 8px;
+    padding: 20px 22px;
+    border-left: 3px solid var(--neu-blue);
+  }
+  .overview-fits {
+    background: #0a1628;
+    border: 1px solid rgba(0,86,249,0.25);
+    border-radius: 8px;
+    padding: 20px 22px;
+    border-left: 3px solid var(--neu-blue);
+  }
+  .overview-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .overview-title .ot-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .overview-what .overview-title { color: var(--neu-blue); }
+  .overview-what .ot-dot { background: var(--neu-blue); }
+  .overview-fits .overview-title { color: var(--neu-blue); }
+  .overview-fits .ot-dot { background: var(--neu-blue); }
+
+  .overview-text {
+    font-size: 12px;
+    line-height: 1.7;
+    color: #aaa;
+  }
+  .overview-text strong { color: var(--snow); font-weight: 500; }
+
+  .fit-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px 12px;
+    margin-top: 2px;
+  }
+  .fit-list li {
+    font-size: 12px;
+    color: #aaa;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    line-height: 1.5;
+  }
+  .fit-list li::before {
+    content: '✓';
+    color: var(--neu-blue);
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .fit-list li strong { color: var(--snow); font-weight: 500; }
+
+  .not-fit {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    font-size: 11px;
+    color: var(--slate);
+  }
+  .not-fit strong { color: var(--sienna); font-weight: 500; }
+  .migrate-from {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--slate);
+    line-height: 1.55;
+  }
+  .migrate-from strong { color: var(--neu-blue); font-weight: 500; }
+
+  /* ── Project section ── */
+  .project {
+    max-width: 1200px;
+    margin: 16px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .project-card {
+    background: #0a1628;
+    border: 1px solid rgba(0,86,249,0.25);
+    border-radius: 8px;
+    padding: 18px 22px;
+    border-left: 3px solid var(--neu-blue);
+  }
+  .project-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    color: var(--neu-blue);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .project-title .pt-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--neu-blue);
+    flex-shrink: 0;
+  }
+  .project-list {
+    list-style: none;
+    display: grid;
+    gap: 8px;
+  }
+  .project-list li {
+    display: flex;
+    align-items: baseline;
+    font-size: 12px;
+    gap: 12px;
+  }
+  .project-list .label {
+    color: #888;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    width: 92px;
+  }
+  .project-list a {
+    color: #ddd;
+    text-decoration: none;
+    border-bottom: 1px dotted rgba(255,255,255,0.18);
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .project-list a:hover { color: var(--neu-blue); border-bottom-color: var(--neu-blue); }
+  .project-versions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .project-versions-list code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px;
+    border-radius: 3px;
+    color: #ccc;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .project-versions-list code.latest {
+    background: rgba(0,86,249,0.18);
+    color: #7ab8ff;
+    border-color: rgba(0,86,249,0.4);
+    font-weight: 500;
+  }
+  .project-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 17px;
+    color: #fff;
+    font-weight: 500;
+    line-height: 1.1;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    color: var(--slate);
+    font-size: 11px;
+    margin-top: 32px;
+  }
+
+  @media (max-width: 780px) {
+    .grid { grid-template-columns: 1fr; padding: 16px; }
+    .overview { grid-template-columns: 1fr; padding: 16px; }
+    header { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img class="header-logo" src="../shared/logos/kafka.svg" alt="Apache Kafka logo">
+  <div class="header-text">
+    <a class="header-back" href="../">← All cheatsheets</a>
+    <div class="header-title">Apache Kafka<sup style="font-size:14px;opacity:0.7;margin-left:2px;">®</sup> <span>Cheatsheet</span></div>
+    <div class="header-sub">Key concepts - hover any entry for details</div>
+  </div>
+</header>
+
+<div class="overview">
+  <div class="overview-what">
+    <div class="overview-title"><div class="ot-dot"></div>What is Apache Kafka?</div>
+    <p class="overview-text">
+      <strong>Apache Kafka</strong> is a distributed event streaming platform built around an
+      <strong>immutable, append-only commit log</strong>. Producers write records to topics;
+      consumers read at their own pace; the log retains data on disk for hours, days, or forever.
+      Unlike a traditional message queue, Kafka does not delete messages on consumption - many
+      independent consumers can replay the same stream.
+    </p>
+    <p class="overview-text" style="margin-top:9px">
+      Kafka scales horizontally by <strong>partitioning</strong> each topic across brokers and
+      <strong>replicating</strong> partitions for durability. It is the de-facto backbone for
+      event-driven architectures: connecting microservices, feeding data lakes, powering CDC
+      pipelines, and serving as the source-of-truth log for stream processors like Flink.
+    </p>
+  </div>
+
+  <div class="overview-fits">
+    <div class="overview-title"><div class="ot-dot"></div>When Kafka is the right fit</div>
+    <ul class="fit-list">
+      <li><span><strong>Event backbone</strong> - one durable log many services can read independently without point-to-point coupling</span></li>
+      <li><span><strong>CDC pipelines</strong> - capture database changes and fan them out to lakes, search indexes, caches</span></li>
+      <li><span><strong>Log aggregation</strong> - collect logs and metrics from thousands of hosts into a single replayable stream</span></li>
+      <li><span><strong>Stream processing source</strong> - durable input for Flink, Kafka Streams, Spark with replay on failure</span></li>
+      <li><span><strong>Decoupled microservices</strong> - asynchronous communication with backpressure and history</span></li>
+      <li><span><strong>High-throughput ingestion</strong> - millions of events/sec with horizontal scale-out</span></li>
+      <li><span><strong>Event sourcing</strong> - the log itself is the system of record; rebuild state by replay</span></li>
+      <li><span><strong>Audit & compliance</strong> - immutable record of every event for retention windows of months or years</span></li>
+    </ul>
+    <p class="not-fit"><strong>Less ideal for:</strong> request/response RPC (use gRPC), small low-throughput queues with complex routing (use RabbitMQ), or per-message TTL/priority semantics (Kafka is FIFO per partition only).</p>
+    <p class="migrate-from"><strong>Often replaces:</strong> RabbitMQ, ActiveMQ, IBM MQ and other JMS brokers at scale; ad-hoc HTTP webhook fan-out; in-house log shippers feeding a data lake.</p>
+  </div>
+</div>
+
+<div class="project">
+  <div class="project-card">
+    <div class="project-title"><div class="pt-dot"></div>Project resources</div>
+    <ul class="project-list">
+      <li><span class="label">Code</span><a href="https://github.com/apache/kafka" target="_blank" rel="noopener">github.com/apache/kafka</a></li>
+      <li><span class="label">Docs</span><a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener">kafka.apache.org/documentation</a></li>
+      <li><span class="label">Issues</span><a href="https://issues.apache.org/jira/projects/KAFKA" target="_blank" rel="noopener">issues.apache.org/jira/KAFKA</a></li>
+      <li><span class="label">Community</span><a href="https://kafka.apache.org/contact" target="_blank" rel="noopener">kafka.apache.org/contact</a></li>
+      <li><span class="label">Mailing list</span><a href="mailto:users-subscribe@kafka.apache.org">users@kafka.apache.org</a></li>
+      <li><span class="label">Dev list</span><a href="mailto:dev-subscribe@kafka.apache.org">dev@kafka.apache.org</a></li>
+      <li><span class="label">Stack Overflow</span><a href="https://stackoverflow.com/questions/tagged/apache-kafka" target="_blank" rel="noopener">tag: apache-kafka</a></li>
+    </ul>
+  </div>
+  <div class="project-card">
+    <div class="project-title"><div class="pt-dot"></div>Releases & stats</div>
+    <div class="project-versions-list">
+      <code class="latest">4.1.0</code>
+      <code>4.0.0</code>
+      <code>3.9.x</code>
+      <code>3.8.x</code>
+      <code>3.7.x</code>
+      <code>3.6.x</code>
+      <a href="./releases.html" style="font-size:11px;color:#7ab8ff;text-decoration:none;border-bottom:1px dotted rgba(0,86,249,0.5);align-self:center;">Full history →</a>
+    </div>
+    <div class="project-stats">
+      <div>
+        <div class="stat-value">4.1.0</div>
+        <div class="stat-label">Latest (Apr 2026)</div>
+      </div>
+      <div>
+        <div class="stat-value">~30k</div>
+        <div class="stat-label">GitHub stars</div>
+      </div>
+      <div>
+        <div class="stat-value">~1,400</div>
+        <div class="stat-label">Contributors</div>
+      </div>
+      <div>
+        <div class="stat-value">2012</div>
+        <div class="stat-label">ASF top-level since</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<footer>Apache Kafka - kafka.apache.org</footer>
+
+<div class="popup" id="popup">
+  <div class="popup-header">
+    <div class="dot" id="popup-dot"></div>
+    <div class="popup-term" id="popup-term"></div>
+    <div class="popup-controls">
+      <button class="popup-btn popup-pin" id="popup-pin" type="button" title="Dock popup" aria-label="Dock popup">⚲</button>
+      <button class="popup-btn popup-close" id="popup-close" type="button" title="Close" aria-label="Close">×</button>
+    </div>
+  </div>
+  <div class="popup-body">
+    <div class="popup-section-label">What it is</div>
+    <div class="popup-text" id="popup-desc"></div>
+    <div class="popup-section-label popup-label-why">Why it matters</div>
+    <div class="popup-text" id="popup-why"></div>
+    <div class="popup-section-label popup-label-how">How to use it</div>
+    <div class="popup-text" id="popup-how"></div>
+    <div class="popup-link" id="popup-link">Learn more</div>
+  </div>
+</div>
+
+<script>
+const SECTIONS = [
+  { id: "core", label: "Core concepts", cls: "s-core", accent: "#FFDC00", entries: [
+    { term: "Topic", def: "A named, append-only log of records - the fundamental unit of organisation in Kafka.",
+      why: "Topics decouple producers from consumers: producers don't know who reads; consumers don't know who writes. This is the single abstraction that makes Kafka a backbone rather than a queue.",
+      how: "kafka-topics.sh --create --topic orders --partitions 12 --replication-factor 3. Name topics by business entity (orders, payments), not by consumer.",
+      link: "https://developer.confluent.io/courses/apache-kafka/topics/" },
+    { term: "Partition", def: "A subdivision of a topic; the unit of parallelism, ordering, and replication.",
+      why: "Ordering is only guaranteed within a partition, not across the topic. Partition count caps parallel consumption: one consumer per partition per group, max.",
+      how: "Choose partition count based on peak throughput divided by per-consumer throughput. Repartitioning is disruptive - over-provision modestly (e.g. 12-24) from day one.",
+      link: "https://developer.confluent.io/courses/apache-kafka/partitions/" },
+    { term: "Offset", def: "A monotonically increasing integer identifying each record's position within a partition.",
+      why: "Offsets are how consumers track progress and how Kafka supports replay. They are per-partition, never reused, and never change.",
+      how: "Consumers commit offsets back to Kafka (__consumer_offsets topic). Reset with kafka-consumer-groups.sh --reset-offsets to replay from earliest, latest, or a specific point.",
+      link: "https://developer.confluent.io/courses/apache-kafka/partitions/" },
+    { term: "Record", def: "A single message: key, value, headers, timestamp, and offset.",
+      why: "The key drives partition assignment (hash of key mod partitions) and log compaction. Choosing the right key determines ordering, locality, and skew.",
+      how: "Send with ProducerRecord(topic, key, value). For ordered per-entity processing (e.g. per-user), set key = entityId. For load balancing without ordering, use null.",
+      link: "https://developer.confluent.io/courses/apache-kafka/topics/" },
+    { term: "Broker", def: "A single Kafka server; stores partition data on disk and serves producer/consumer requests.",
+      why: "Brokers are stateful - they hold the log. Scaling out adds capacity but requires partition reassignment. A cluster typically runs 3-9 brokers.",
+      how: "Run as a JVM process with disk-backed log dirs (log.dirs). Size brokers by disk I/O and network capacity; CPU is rarely the bottleneck.",
+      link: "https://developer.confluent.io/courses/apache-kafka/brokers/" },
+    { term: "Cluster", def: "A group of brokers acting together, identified by a unique cluster.id.",
+      why: "All partitions, replicas, and metadata are scoped to the cluster. Cross-cluster replication is handled by MirrorMaker 2.",
+      how: "Brokers discover each other via the controller (KRaft quorum or ZooKeeper). Clients connect with bootstrap.servers - a few brokers as entry points.",
+      link: "https://developer.confluent.io/courses/apache-kafka/brokers/" },
+    { term: "Controller", def: "The broker (in KRaft, a quorum) responsible for partition leadership and metadata changes.",
+      why: "All admin operations - create topic, reassign partition, elect leader - go through the controller. A flaky controller cascades into cluster-wide issues.",
+      how: "KRaft mode (since 3.3) runs the controller as a Raft quorum of 3-5 nodes - no ZooKeeper. Production should be on KRaft; ZK mode is deprecated.",
+      link: "https://developer.confluent.io/courses/apache-kafka/brokers/" },
+  ]},
+  { id: "producer", label: "Producers", cls: "s-producer", accent: "#FF7C52", entries: [
+    { term: "Producer", def: "A client that publishes records to Kafka topics.",
+      why: "Producers handle batching, partitioning, compression, retries, and idempotence. Misconfigured producers are the #1 source of duplicates and data loss.",
+      how: "new KafkaProducer<>(props). Keep one producer per app, share it across threads. Always configure acks, retries, and enable.idempotence explicitly.",
+      link: "https://developer.confluent.io/courses/apache-kafka/producers/" },
+    { term: "acks", def: "How many brokers must acknowledge a write before the producer considers it successful.",
+      why: "acks=0 risks loss; acks=1 risks loss on leader failure before replication; acks=all is the only durable setting.",
+      how: "Set acks=all in production. Combine with min.insync.replicas=2 (on a RF=3 topic) so writes need quorum, balancing durability against availability.",
+      link: "https://developer.confluent.io/courses/apache-kafka/producers/" },
+    { term: "Idempotent producer", def: "Producer that assigns a sequence number per partition so the broker can dedupe retries.",
+      why: "Without idempotence, a network retry after the broker already wrote the message produces a duplicate. Idempotence is free, on by default since 3.0.",
+      how: "enable.idempotence=true. Forces acks=all and retries to a safe value. Scoped to a single producer session; for end-to-end exactly-once, add transactions.",
+      link: "https://developer.confluent.io/courses/apache-kafka/producers/" },
+    { term: "Transactions", def: "Atomic writes across multiple partitions and topics; commit or abort as a unit.",
+      why: "Required for exactly-once stream processing (read-process-write loops). Without transactions, a crash mid-write can leave half-written outputs visible.",
+      how: "Set transactional.id, call initTransactions(), beginTransaction(), sendOffsetsToTransaction(), commitTransaction(). Consumers read with isolation.level=read_committed.",
+      link: "https://developer.confluent.io/courses/apache-kafka/producers/" },
+    { term: "Key", def: "Optional bytes on each record that determine partition assignment and compaction identity.",
+      why: "Same key, same partition, ordered processing. For compacted topics, key is the row identity (latest value per key is retained).",
+      how: "Pick a high-cardinality key for even distribution. Beware skew: a single hot key (e.g. a celebrity userId) saturates one partition while others idle.",
+      link: "https://developer.confluent.io/courses/apache-kafka/producers/" },
+    { term: "Batching & linger", def: "Producer groups records into batches per partition before sending.",
+      why: "Bigger batches mean better throughput and compression ratios. Tiny single-record sends waste broker and network resources.",
+      how: "batch.size=64KB or larger; linger.ms=10-50ms to let batches fill. Throughput typically 10x with proper batching vs. defaults.",
+      link: "https://developer.confluent.io/courses/apache-kafka/producers/" },
+    { term: "Compression", def: "Producer-side compression of batches; broker stores compressed bytes.",
+      why: "Cuts storage and network cost 3-10x. Modern codecs (zstd, lz4) have negligible CPU overhead compared to network savings.",
+      how: "compression.type=zstd (best ratio) or lz4 (fastest). Compression happens per batch - pairs with linger.ms for best ratios.",
+      link: "https://developer.confluent.io/courses/apache-kafka/producers/" },
+  ]},
+  { id: "consumer", label: "Consumers", cls: "s-consumer", accent: "#00EB92", entries: [
+    { term: "Consumer", def: "A client that subscribes to topics and reads records sequentially from each partition.",
+      why: "Consumers are single-threaded per instance per partition. Throughput scales by adding more consumer instances within a group, up to partition count.",
+      how: "consumer.subscribe(List.of(\"orders\")). Poll in a loop: records = consumer.poll(Duration.ofMillis(100)). Process then commit.",
+      link: "https://developer.confluent.io/courses/apache-kafka/consumers/" },
+    { term: "Consumer group", def: "A set of consumers sharing a group.id; partitions are distributed across members.",
+      why: "Groups are how Kafka scales reads. Each partition is consumed by exactly one member of the group - that's the parallelism unit.",
+      how: "Set group.id on all consumer instances of the same app. Different group.ids on the same topic = independent fan-out (each group reads everything).",
+      link: "https://developer.confluent.io/courses/apache-kafka/consumers/" },
+    { term: "Rebalance", def: "Reassignment of partitions across group members when membership or topic-partition count changes.",
+      why: "Naive rebalance (stop-the-world) pauses all consumers in the group. A long rebalance under load looks like an outage.",
+      how: "Use cooperative-sticky assignor (partition.assignment.strategy). Tune session.timeout.ms, heartbeat.interval.ms; long processing means increase max.poll.interval.ms.",
+      link: "https://developer.confluent.io/courses/apache-kafka/consumers/" },
+    { term: "Offset commit", def: "Recording how far a consumer has progressed in each partition, so it can resume after restart.",
+      why: "Commit too early and you lose work on crash. Commit too late and you reprocess on crash (duplicates). Wrong choice corrupts your downstream.",
+      how: "Default enable.auto.commit=true is risky. Prefer manual commit after successful processing: consumer.commitSync() (synchronous, safer) or commitAsync().",
+      link: "https://developer.confluent.io/courses/apache-kafka/consumers/" },
+    { term: "Static membership", def: "Consumer keeps the same group identity across restarts via group.instance.id.",
+      why: "Avoids unnecessary rebalances during routine restarts (deploys, rolling updates). Critical for stateful consumers with warm caches.",
+      how: "Set group.instance.id=worker-1 (unique per instance). On restart within session.timeout.ms, the consumer rejoins with its old partitions.",
+      link: "https://developer.confluent.io/courses/apache-kafka/consumers/" },
+    { term: "Isolation level", def: "Whether the consumer sees uncommitted (in-progress) transactional writes.",
+      why: "read_uncommitted (default) sees aborted transactions - duplicates and rolled-back data. read_committed gives transactional semantics end-to-end.",
+      how: "isolation.level=read_committed when reading topics written by transactional producers (e.g. Flink, Kafka Streams). Slight latency cost from waiting on commits.",
+      link: "https://developer.confluent.io/courses/apache-kafka/consumers/" },
+    { term: "Pause / Resume", def: "Temporarily stop fetching from specific partitions without leaving the group.",
+      why: "Lets you apply backpressure (e.g. downstream slowdown) without triggering rebalance. Critical for sinks with bounded queues.",
+      how: "consumer.pause(partitions) to stop, consumer.resume(partitions) to continue. Must keep polling (returns empty records) to stay alive in group.",
+      link: "https://developer.confluent.io/courses/apache-kafka/consumers/" },
+  ]},
+  { id: "storage", label: "Storage & durability", cls: "s-storage", accent: "#0056F9", entries: [
+    { term: "Log segment", def: "A file on disk holding a contiguous range of offsets for one partition.",
+      why: "Segments are the unit of retention, compaction, and tiered storage offload. Old closed segments are immutable and friendly to OS page cache.",
+      how: "segment.bytes (default 1GB) and segment.ms control rolling. Smaller segments = faster expiry but more files; larger = better compression and fewer index hits.",
+      link: "https://developer.confluent.io/courses/apache-kafka/topics/" },
+    { term: "Retention", def: "How long Kafka keeps records before deleting them (by time or size).",
+      why: "Retention is the difference between Kafka-as-queue (hours) and Kafka-as-system-of-record (forever). Choose intentionally per topic.",
+      how: "retention.ms (default 7 days) or retention.bytes per partition. Set retention.ms=-1 for infinite. Configure per topic via kafka-configs.sh.",
+      link: "https://developer.confluent.io/courses/apache-kafka/topics/" },
+    { term: "Log compaction", def: "Retains only the latest value per key in a topic; deletes older versions in the background.",
+      why: "Lets a topic act as a keyed snapshot table - replay it once to rebuild full current state. Foundation for CDC, KStreams KTables, and config topics.",
+      how: "cleanup.policy=compact (or compact,delete for both). Use unique keys per logical entity; null value = tombstone (deleted after delete.retention.ms).",
+      link: "https://developer.confluent.io/courses/apache-kafka/topics/" },
+    { term: "Tiered storage", def: "Offloads older log segments from broker disk to S3/GCS/HDFS; broker fetches transparently.",
+      why: "Decouples retention cost from broker disk. Lets you keep months/years of history without scaling brokers proportionally.",
+      how: "Enabled per topic: remote.storage.enable=true with local.retention.ms (hot tier) and retention.ms (total). Requires a remote storage plugin." },
+    { term: "Replication factor", def: "Number of copies of each partition across brokers.",
+      why: "RF=1 means any broker failure loses data. RF=3 is the production standard: survives one broker loss with zero data loss when paired with min.insync.replicas=2.",
+      how: "Set at topic creation: --replication-factor 3. Changing later requires partition reassignment with kafka-reassign-partitions.sh.",
+      link: "https://developer.confluent.io/courses/apache-kafka/replication/" },
+    { term: "ISR", def: "In-Sync Replicas - followers caught up with the leader within replica.lag.time.max.ms.",
+      why: "The ISR set defines durability: acks=all only commits when all ISRs have the write. A shrinking ISR is the early warning sign of broker trouble.",
+      how: "Monitor UnderReplicatedPartitions metric. ISR shrinkage usually means slow disk, network, or GC pauses on a follower.",
+      link: "https://developer.confluent.io/courses/apache-kafka/replication/" },
+    { term: "min.insync.replicas", def: "Minimum ISR count required for a write to succeed when acks=all.",
+      why: "Without this, a write to a single surviving leader (ISR=1) succeeds - and is lost when that leader fails. This is the most-missed durability setting.",
+      how: "For RF=3, set min.insync.replicas=2 (allows one broker down). Producers get NotEnoughReplicasException if ISR drops below - fail fast is correct here.",
+      link: "https://developer.confluent.io/courses/apache-kafka/replication/" },
+  ]},
+  { id: "eco", label: "Ecosystem", cls: "s-eco", accent: "#806CFF", entries: [
+    { term: "Kafka Connect", def: "Framework for streaming data between Kafka and external systems via reusable connector plugins.",
+      why: "Production-grade source/sink without writing code. Distributed mode handles scaling, offset tracking, and failure recovery automatically.",
+      how: "Run a Connect cluster, POST connector configs over REST. Use proven connectors (Debezium for CDC, S3 sink, JDBC) before writing your own.",
+      link: "https://developer.confluent.io/courses/apache-kafka/kafka-connect/" },
+    { term: "Kafka Streams", def: "JVM library for stream processing inside your app - no separate cluster.",
+      why: "Lighter than Flink for app-embedded use cases. Scales by adding app instances; state stored locally in RocksDB and backed by Kafka changelog topics.",
+      how: "StreamsBuilder().stream(\"topic\").groupByKey().count().toStream().to(\"out\"). Run new KafkaStreams(topology, props).start() inside your service.",
+      link: "https://developer.confluent.io/courses/kafka-streams/get-started/" },
+    { term: "Schema Registry", def: "Pattern: a centralised store for record schemas (Avro, Protobuf, JSON Schema) with compatibility rules. Apicurio Registry is the Apache 2.0 implementation; Confluent Schema Registry is widely used under the Confluent Community License.",
+      why: "Without a registry, every producer ships its own schema inline (bloated payloads) or worse, sends unschematised JSON. Compatibility checks prevent breaking consumers.",
+      how: "Use the matching serdes for your registry of choice. Set compatibility mode to `BACKWARD` so producers can only evolve in consumer-safe ways.",
+      link: "https://developer.confluent.io/courses/apache-kafka/schema-registry/" },
+    { term: "MirrorMaker 2", def: "Connect-based tool to replicate topics, offsets, and ACLs between Kafka clusters.",
+      why: "The standard way to do active-passive DR or active-active multi-region. Built on Connect so it benefits from distributed scaling and monitoring.",
+      how: "Configure source/target cluster aliases and topic patterns. Topics appear in target as source.topic. Translates consumer offsets across clusters." },
+  ]},
+  { id: "sec", label: "Security & operations", cls: "s-sec", accent: "#C9EDF0", entries: [
+    { term: "KRaft", def: "Kafka Raft mode - internal Raft quorum replaces ZooKeeper for metadata management.",
+      why: "Simpler ops (one system to run), faster controller failover, larger cluster support (1M+ partitions). ZooKeeper mode is removed in 4.0.",
+      how: "process.roles=controller,broker (combined) or split. Bootstrap the cluster with kafka-storage.sh format. Migrate from ZK with the dual-write tool.",
+      link: "https://developer.confluent.io/courses/apache-kafka/brokers/" },
+    { term: "ACL", def: "Access Control List - per-resource permissions for users and groups.",
+      why: "Without ACLs, any client with network access can read or write any topic. Critical for multi-tenant clusters and PII-bearing topics.",
+      how: "kafka-acls.sh --add --allow-principal User:alice --operation Read --topic orders. Use prefix matching (--resource-pattern-type prefixed) for team-scoped patterns." },
+    { term: "SASL", def: "Authentication mechanism - PLAIN, SCRAM-SHA-256/512, OAUTHBEARER, or GSSAPI (Kerberos).",
+      why: "Identifies who the client is so ACLs can apply. SCRAM is the common default for self-managed; OAUTHBEARER for cloud-native OIDC integration.",
+      how: "Configure listeners with security.protocol=SASL_SSL. Clients set sasl.mechanism and sasl.jaas.config with credentials. Rotate SCRAM passwords via kafka-configs.sh." },
+    { term: "mTLS", def: "Mutual TLS - client and broker both present certificates for authentication.",
+      why: "Strong auth without password management. Standard in Kubernetes environments where certs are issued by cert-manager or service mesh.",
+      how: "Generate per-service keystores; configure ssl.client.auth=required on brokers. Client principal derived from cert CN/SAN - wire that into ACLs." },
+    { term: "Quotas", def: "Per-client byte-rate and request-rate limits to prevent noisy neighbours.",
+      why: "A runaway producer can saturate the cluster and starve everyone else. Quotas enforce fairness across tenants.",
+      how: "kafka-configs.sh --add-config producer_byte_rate=10485760 --entity-type users --entity-name appA. Throttle is applied silently by delaying responses." },
+    { term: "Rack awareness", def: "Broker hint about its physical/AZ location; controller spreads replicas across racks.",
+      why: "Without rack awareness, all 3 replicas of a partition can land in the same AZ - one AZ outage and you lose the partition.",
+      how: "Set broker.rack=us-east-1a per broker. Topic creation/reassignment then spreads replicas across distinct rack values." },
+  ]},
+];
+
+// ── Build DOM ──────────────────────────────────────────────────────────────
+const grid = document.getElementById('grid');
+
+SECTIONS.forEach(sec => {
+  const card = document.createElement('div');
+  card.className = `section ${sec.cls}`;
+
+  const header = document.createElement('div');
+  header.className = 'section-header';
+  header.innerHTML = `<div class="bar"></div>${sec.label}`;
+  card.appendChild(header);
+
+  sec.entries.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'entry';
+    row.dataset.term = entry.term;
+    row.dataset.def  = entry.def;
+    row.dataset.why  = entry.why;
+    row.dataset.how  = entry.how;
+    if (entry.link) {
+      row.dataset.link = entry.link;
+      row.classList.add('has-link');
+      row.addEventListener('click', () => window.open(entry.link, '_blank', 'noopener'));
+    }
+    row.dataset.accent = sec.accent;
+    row.innerHTML = `
+      <span class="entry-term">${entry.term}</span>
+      <span class="entry-dot"></span>
+      <span class="entry-def">${entry.def}</span>
+      <span class="entry-hint">↗</span>`;
+    card.appendChild(row);
+  });
+
+  grid.appendChild(card);
+});
+
+// ── Popup logic ────────────────────────────────────────────────────────────
+const popup     = document.getElementById('popup');
+const popupDot  = document.getElementById('popup-dot');
+const popupTerm = document.getElementById('popup-term');
+const popupDesc = document.getElementById('popup-desc');
+const popupWhy  = document.getElementById('popup-why');
+const popupHow  = document.getElementById('popup-how');
+const popupLink = document.getElementById('popup-link');
+const popupPin   = document.getElementById('popup-pin');
+const popupClose = document.getElementById('popup-close');
+
+let activeEntry = null;
+let docked = false;
+let hideTimer = null;
+
+function cancelHide() { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } }
+function scheduleHide(delay = 180) {
+  if (docked) return;
+  cancelHide();
+  hideTimer = setTimeout(() => {
+    activeEntry = null;
+    popup.classList.remove('visible');
+  }, delay);
+}
+
+function setDocked(v) {
+  docked = v;
+  popup.classList.toggle('docked', v);
+  popupPin.classList.toggle('active', v);
+  popupPin.title = v ? 'Undock popup' : 'Dock popup';
+  if (v) cancelHide();
+}
+
+popup.addEventListener('mouseenter', cancelHide);
+popup.addEventListener('mouseleave', () => scheduleHide());
+
+let dragging = false;
+let dragDx = 0, dragDy = 0;
+const popupHeader = popup.querySelector('.popup-header');
+popupHeader.addEventListener('mousedown', e => {
+  if (e.target.closest('button')) return;
+  dragging = true;
+  if (!docked) setDocked(true);
+  cancelHide();
+  const rect = popup.getBoundingClientRect();
+  dragDx = e.clientX - rect.left;
+  dragDy = e.clientY - rect.top;
+  popup.classList.add('dragging');
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const margin = 8;
+  const pw = popup.offsetWidth;
+  const ph = popup.offsetHeight;
+  let x = e.clientX - dragDx;
+  let y = e.clientY - dragDy;
+  x = Math.max(margin, Math.min(x, window.innerWidth  - pw - margin));
+  y = Math.max(margin, Math.min(y, window.innerHeight - ph - margin));
+  popup.style.left = x + 'px';
+  popup.style.top  = y + 'px';
+});
+document.addEventListener('mouseup', () => {
+  if (!dragging) return;
+  dragging = false;
+  popup.classList.remove('dragging');
+});
+
+popupPin.addEventListener('click', e => {
+  e.stopPropagation();
+  setDocked(!docked);
+});
+popupClose.addEventListener('click', e => {
+  e.stopPropagation();
+  setDocked(false);
+  activeEntry = null;
+  popup.classList.remove('visible');
+});
+popupLink.addEventListener('click', () => {
+  if (activeEntry && activeEntry.dataset.link) {
+    window.open(activeEntry.dataset.link, '_blank', 'noopener');
+  }
+});
+
+function renderInline(text) {
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return escaped.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+}
+
+function showPopup(entry, e) {
+  cancelHide();
+  activeEntry = entry;
+  popupDot.style.background = entry.dataset.accent;
+  popupTerm.textContent = entry.dataset.term;
+  popupDesc.innerHTML = renderInline(entry.dataset.def);
+  popupWhy.innerHTML  = renderInline(entry.dataset.why);
+  popupHow.innerHTML  = renderInline(entry.dataset.how);
+  if (entry.dataset.link) {
+    popupLink.classList.add('visible');
+  } else {
+    popupLink.classList.remove('visible');
+  }
+  popup.classList.add('visible');
+  popup.scrollTop = 0;
+  positionPopup(e);
+}
+
+function positionPopup(e) {
+  if (docked) return;
+  const margin = 8;
+  const pw = popup.offsetWidth || 360;
+  const ph = Math.min(popup.scrollHeight || 280, window.innerHeight * 0.75);
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let x = e.clientX + 16;
+  if (x + pw > vw - margin) {
+    const leftX = e.clientX - pw - 16;
+    x = leftX >= margin ? leftX : Math.max(margin, vw - pw - margin);
+  }
+  if (x < margin) x = margin;
+  let y = e.clientY + 8;
+  if (y + ph > vh - margin) y = Math.max(margin, vh - ph - margin);
+  if (y < margin) y = margin;
+  popup.style.left = x + 'px';
+  popup.style.top  = y + 'px';
+}
+
+document.querySelectorAll('.entry').forEach(row => {
+  row.addEventListener('mouseenter', e => showPopup(row, e));
+  row.addEventListener('mouseleave', () => scheduleHide());
+});
+
+// When the popup is docked it can sit on top of entries and block their mouseenter.
+// Watch the cursor globally: if it's over an entry (even one beneath the popup), update content.
+document.addEventListener('mousemove', e => {
+  if (!docked || dragging) return;
+  const stack = document.elementsFromPoint(e.clientX, e.clientY);
+  for (const el of stack) {
+    if (el === popup || popup.contains(el)) return;
+    const row = el.closest && el.closest('.entry');
+    if (row) {
+      if (row !== activeEntry) showPopup(row, e);
+      return;
+    }
+  }
+});
+</script>
+</body>
+</html>

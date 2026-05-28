@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cheatsheets</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --neu-blue:   #0056F9;
+    --polar:      #009FFF;
+    --glow:       #00EB92;
+    --charcoal:   #1E1E1E;
+    --snow:       #FAFAFA;
+    --slate:      #767676;
+    --zest:       #FFDC00;
+    --sienna:     #FF7C52;
+    --sky:        #C9EDF0;
+    --violet:     #806CFF;
+    --flink-pink: #E6526F;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--charcoal);
+    color: var(--snow);
+    min-height: 100vh;
+    padding: 0 0 48px;
+  }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(90deg, var(--neu-blue), var(--polar));
+    padding: 28px 40px 22px;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 2px;
+    background: var(--glow);
+  }
+  .header-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+  .header-title span { font-weight: 400; opacity: 0.9; }
+  .header-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Grid ── */
+  .grid {
+    max-width: 1280px;
+    margin: 32px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 20px;
+  }
+
+  /* ── Card ── */
+  .card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.07);
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .card-logo {
+    position: absolute;
+    top: 70px;
+    right: 22px;
+    width: 72px;
+    height: 72px;
+    opacity: 0.9;
+    transition: opacity 0.15s, transform 0.15s;
+    object-fit: contain;
+  }
+  .card:hover .card-logo { opacity: 1; transform: scale(1.05); }
+  .c-kafka .card-logo { filter: brightness(0) invert(1); }
+  .card-tm {
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.55;
+    margin-left: 1px;
+    vertical-align: super;
+    line-height: 0;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.18);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  }
+  .card.coming-soon {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .card.coming-soon:hover {
+    transform: none;
+    border-color: rgba(255,255,255,0.07);
+    box-shadow: none;
+  }
+
+  .card-header {
+    padding: 18px 24px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-header .bar {
+    width: 4px;
+    height: 18px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .card-body {
+    padding: 22px 24px 26px;
+  }
+  .card-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .card-arrow {
+    font-size: 18px;
+    opacity: 0.4;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .card:hover .card-arrow {
+    opacity: 0.9;
+    transform: translateX(3px);
+  }
+  .card-desc {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #aaa;
+    max-width: calc(100% - 80px);
+  }
+  .card-badge {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.06);
+    color: var(--slate);
+  }
+
+  /* ── Card color themes ── */
+  .c-flink   { background: #240a14; }
+  .c-flink   .card-header {
+    background: linear-gradient(90deg, #B83853, var(--flink-pink));
+    color: #fff;
+  }
+  .c-flink   .bar { background: #fff; }
+  .c-flink   .card-title { color: #ff8aa8; }
+
+  .c-kafka   { background: #0a1628; }
+  .c-kafka   .card-header {
+    background: linear-gradient(90deg, var(--neu-blue), var(--polar));
+    color: #fff;
+  }
+  .c-kafka   .bar { background: #fff; }
+  .c-kafka   .card-title { color: #7ab8ff; }
+
+  .c-iceberg { background: #0a1e24; }
+  .c-iceberg .card-header {
+    background: linear-gradient(90deg, var(--polar), var(--sky));
+    color: #051a22;
+  }
+  .c-iceberg .bar { background: #051a22; }
+  .c-iceberg .card-title { color: #a0dfe8; }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    color: var(--slate);
+    font-size: 11px;
+    margin-top: 40px;
+    padding: 0 24px;
+    line-height: 1.6;
+  }
+  footer .trademarks {
+    max-width: 760px;
+    margin: 14px auto 0;
+    font-size: 11px;
+    color: #555;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 780px) {
+    .grid { grid-template-columns: 1fr; padding: 16px; }
+    header { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">Cheatsheets for Data Streaming<span>- key concepts at a glance</span></div>
+  <div class="header-sub">Compact references for distributed data systems</div>
+</header>
+
+<div class="grid">
+
+  <a class="card c-kafka" href="./kafka/">
+    <div class="card-header"><div class="bar"></div>Event streaming</div>
+    <img class="card-logo" src="./shared/logos/kafka.svg" alt="Apache Kafka logo">
+    <div class="card-body">
+      <div class="card-title">Apache Kafka<span class="card-tm">®</span> <span class="card-arrow">→</span></div>
+      <div class="card-desc">Distributed commit log for high-throughput event streaming and pub/sub messaging.</div>
+    </div>
+  </a>
+
+  <a class="card c-flink" href="./flink/">
+    <div class="card-header"><div class="bar"></div>Stream processing</div>
+    <img class="card-logo" src="./shared/logos/flink.svg" alt="Apache Flink logo">
+    <div class="card-body">
+      <div class="card-title">Apache Flink<span class="card-tm">®</span> <span class="card-arrow">→</span></div>
+      <div class="card-desc">Stateful stream processing with exactly-once guarantees over unbounded and bounded data.</div>
+    </div>
+  </a>
+
+  <a class="card c-iceberg" href="./iceberg/">
+    <div class="card-header"><div class="bar"></div>Table format</div>
+    <img class="card-logo" src="./shared/logos/iceberg.svg" alt="Apache Iceberg logo">
+    <div class="card-body">
+      <div class="card-title">Apache Iceberg<span class="card-tm">™</span> <span class="card-arrow">→</span></div>
+      <div class="card-desc">Open table format for huge analytic datasets with ACID transactions and schema evolution.</div>
+    </div>
+  </a>
+</div>
+
+<footer>
+  cheatsheets - hover for context, click to dive in
+  <div class="trademarks">
+    Apache<sup>®</sup>, Apache Flink<sup>®</sup>, Flink<sup>®</sup>, Apache Kafka<sup>®</sup>, Kafka<sup>®</sup>,
+    Apache Iceberg<sup>™</sup>, Iceberg<sup>™</sup>, and the Apache feather logo are either registered
+    trademarks or trademarks of The Apache Software Foundation in the United States and other countries.
+    Project logos are used in accordance with the ASF's trademark and branding policies. This site is
+    independent and is not affiliated with, endorsed, or sponsored by the ASF.
+  </div>
+</footer>
+
+</body>
+</html>

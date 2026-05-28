@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apache Iceberg Release History</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --neu-blue: #0056F9;
+    --polar:    #009FFF;
+    --sky:      #C9EDF0;
+    --glow:     #00EB92;
+    --charcoal: #1E1E1E;
+    --snow:     #FAFAFA;
+    --slate:    #767676;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--charcoal);
+    color: var(--snow);
+    min-height: 100vh;
+    padding: 0 0 64px;
+  }
+
+  header {
+    background: linear-gradient(90deg, var(--polar), var(--sky));
+    padding: 28px 40px 22px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 2px;
+    background: var(--glow);
+  }
+  .header-logo {
+    height: 52px;
+    width: auto;
+    max-width: 180px;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
+  .header-text { flex: 1; min-width: 0; }
+  .header-back {
+    display: inline-block;
+    font-size: 11px;
+    color: rgba(5,26,34,0.7);
+    text-decoration: none;
+    margin-bottom: 4px;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, transform 0.15s;
+  }
+  .header-back:hover { color: #051a22; transform: translateX(-2px); }
+  .header-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: #051a22;
+  }
+  .header-title span { font-weight: 400; opacity: 0.75; }
+  .header-sub {
+    font-size: 12px;
+    color: rgba(5,26,34,0.65);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  .timeline {
+    max-width: 900px;
+    margin: 32px auto 0;
+    padding: 0 40px;
+    position: relative;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 16px;
+    bottom: 16px;
+    left: 50px;
+    width: 1px;
+    background: rgba(0,159,255,0.22);
+  }
+  .release {
+    position: relative;
+    padding: 0 0 28px 80px;
+  }
+  .release::before {
+    content: '';
+    position: absolute;
+    left: 45px;
+    top: 14px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--charcoal);
+    border: 2px solid var(--polar);
+  }
+  .release.major::before {
+    background: var(--polar);
+    box-shadow: 0 0 0 4px rgba(0,159,255,0.22);
+  }
+  .release-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+  .release-version {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--polar);
+  }
+  .release.major .release-version { font-size: 24px; }
+  .release-date {
+    font-size: 11px;
+    color: var(--slate);
+    letter-spacing: 0.04em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .release-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(0,159,255,0.18);
+    color: var(--polar);
+    border: 1px solid rgba(0,159,255,0.4);
+  }
+  .release ul {
+    list-style: none;
+    display: grid;
+    gap: 6px;
+  }
+  .release li {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #ccc;
+    padding-left: 14px;
+    position: relative;
+  }
+  .release li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 9px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(0,159,255,0.6);
+  }
+  .release li strong { color: var(--snow); font-weight: 500; }
+  .release li code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,0.06);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #e6e6e6;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .release.forecast::before {
+    background: transparent;
+    border-style: dashed;
+    border-color: #FFDC00;
+    box-shadow: none;
+  }
+  .release.forecast .release-version { color: #ffe566; opacity: 0.9; }
+  .release.forecast .release-badge {
+    background: rgba(255,220,0,0.18);
+    color: #ffe566;
+    border: 1px solid rgba(255,220,0,0.4);
+  }
+  .release.forecast li::before { background: rgba(255,220,0,0.55); }
+  .forecast-caveat {
+    font-size: 11px;
+    font-style: italic;
+    color: #888;
+    margin-bottom: 12px;
+    line-height: 1.55;
+    padding: 8px 12px;
+    border-left: 2px solid rgba(255,220,0,0.4);
+    background: rgba(255,220,0,0.04);
+    border-radius: 3px;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--slate);
+    font-size: 11px;
+    margin-top: 48px;
+    padding: 0 24px;
+  }
+
+  @media (max-width: 720px) {
+    header { padding: 20px; }
+    .timeline { padding: 0 20px; }
+    .timeline::before { left: 24px; }
+    .release { padding-left: 50px; }
+    .release::before { left: 19px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img class="header-logo" src="../shared/logos/iceberg.svg" alt="Apache Iceberg logo">
+  <div class="header-text">
+    <a class="header-back" href="./">← Back to Iceberg cheatsheet</a>
+    <div class="header-title">Apache Iceberg<sup style="font-size:14px;opacity:0.7;margin-left:2px;">™</sup> <span>Release history</span></div>
+    <div class="header-sub">Major releases since 0.7, latest first - significant features only</div>
+  </div>
+</header>
+
+<section class="timeline">
+
+  <article class="release forecast">
+    <div class="release-head">
+      <span class="release-version">1.10.0 ?</span>
+      <span class="release-date">expected H2 2026</span>
+      <span class="release-badge">Forecast</span>
+    </div>
+    <p class="forecast-caveat">Drawn from active proposals and public community discussion. Not a commitment - scope can shift, slip, or be cut between now and the actual release.</p>
+    <ul>
+      <li>More <strong>spec v3</strong> features promoted to GA: row lineage, default value handling polish</li>
+      <li><strong>Geometry / geography types</strong> reach broader engine support</li>
+      <li><strong>Variant type</strong> performance and shredding improvements; engine adoption</li>
+      <li>Materialized views (preview) - declarative refresh of derived tables</li>
+      <li>REST catalog: signed URLs / vended credentials standardisation across engines</li>
+      <li>Native encryption-at-rest spec refinements</li>
+      <li>Multi-table transactions via the catalog (Polaris / Nessie alignment)</li>
+      <li>Better compaction strategies for MoR with deletion vectors</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">1.9.0</span>
+      <span class="release-date">2026-03</span>
+      <span class="release-badge">Latest</span>
+    </div>
+    <ul>
+      <li><strong>Spec v3 features</strong>: deletion vectors GA, default column values, richer types (geometry, geography)</li>
+      <li>Variant semi-structured type for nested JSON-like data</li>
+      <li>Iceberg REST catalog: vended credentials maturity</li>
+      <li>Compaction: better small-file consolidation under MoR</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.8.0</span>
+      <span class="release-date">2025-09</span>
+    </div>
+    <ul>
+      <li>Spec v3 preview - deletion vectors, default values, row lineage</li>
+      <li><strong>Variant type</strong> for semi-structured (JSON-like) data with shredding</li>
+      <li>MERGE planning improvements; column-projection-aware deletes</li>
+      <li>Optimised partition statistics file format (Puffin)</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.7.0</span>
+      <span class="release-date">2024-11</span>
+    </div>
+    <ul>
+      <li>Iceberg REST catalog hardening and view spec finalisation</li>
+      <li>Scan planning offloaded server-side for REST catalogs</li>
+      <li>Spark 4.0 readiness and broader engine support</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.6.0</span>
+      <span class="release-date">2024-07</span>
+    </div>
+    <ul>
+      <li>Stored procedures for table maintenance stable</li>
+      <li>Faster manifest rewrite for large tables</li>
+      <li>Better support for engines other than Spark (Trino, Dremio, DuckDB)</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.5.0</span>
+      <span class="release-date">2024-03</span>
+    </div>
+    <ul>
+      <li>Initial design work on spec v3 (deletion vectors design)</li>
+      <li>Parquet bloom-filter writes for high-cardinality columns</li>
+      <li>Improved schema-evolution diagnostics</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.4.0</span>
+      <span class="release-date">2023-09</span>
+    </div>
+    <ul>
+      <li><strong>REST catalog</strong> reaches production maturity; many engines adopt it</li>
+      <li>View spec stability (cross-engine view definitions)</li>
+      <li>Z-order compaction strategy</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.3.0</span>
+      <span class="release-date">2023-05</span>
+    </div>
+    <ul>
+      <li><strong>View support</strong> in the Iceberg spec</li>
+      <li>Branching and tagging GA across engines</li>
+      <li>Position delete file maintenance procedures</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.2.0</span>
+      <span class="release-date">2023-02</span>
+    </div>
+    <ul>
+      <li>Storage credentials vending via the catalog</li>
+      <li>Position delete read-side optimisations</li>
+      <li>Partition statistics files (Puffin sidecar)</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">1.1.0</span>
+      <span class="release-date">2022-12</span>
+    </div>
+    <ul>
+      <li>Major engine ecosystem expansion (Snowflake/Dremio/DuckDB ingress maturing)</li>
+      <li>Spark 3.3 / Flink 1.16 support</li>
+      <li>Snapshot expiration and orphan-file removal performance</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">1.0.0</span>
+      <span class="release-date">2022-09</span>
+      <span class="release-badge">Major</span>
+    </div>
+    <ul>
+      <li><strong>Stable spec v2</strong> declared - format frozen for compatibility</li>
+      <li>Production-readiness signal for the broader ecosystem</li>
+      <li>Spark/Flink/Trino integrations promoted to GA</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.14.0</span>
+      <span class="release-date">2022-07</span>
+    </div>
+    <ul>
+      <li><strong>Branching and tagging (preview)</strong> for write-audit-publish workflows</li>
+      <li><strong>REST catalog spec</strong> introduced</li>
+      <li>Schema-evolution improvements: drop and add column at any position</li>
+      <li>Spark Structured Streaming sink stabilisation</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.13.0</span>
+      <span class="release-date">2022-02</span>
+    </div>
+    <ul>
+      <li>Optimised metadata reads via manifest summarisation</li>
+      <li>Parquet vectorised reads for Spark</li>
+      <li>Tighter Trino and Hive integrations</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.12.0</span>
+      <span class="release-date">2021-09</span>
+    </div>
+    <ul>
+      <li><strong>Row-level deletes</strong> (position and equality) - merge-on-read support</li>
+      <li>Spec v2 finalised</li>
+      <li>MERGE INTO in Spark SQL</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.11.0</span>
+      <span class="release-date">2021-04</span>
+    </div>
+    <ul>
+      <li>Spark SQL extensions for Iceberg-specific DDL</li>
+      <li>Custom partition transforms (bucket, truncate, year/month/day/hour)</li>
+      <li>Flink connector stabilisation</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.10.0</span>
+      <span class="release-date">2020-11</span>
+    </div>
+    <ul>
+      <li><strong>Hidden partitioning</strong> with column transforms</li>
+      <li>Time travel via snapshot IDs and timestamps</li>
+      <li>Initial Flink read/write support</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.9.0</span>
+      <span class="release-date">2020-08</span>
+    </div>
+    <ul>
+      <li>Per-file data file metrics (min/max bounds, null counts)</li>
+      <li>Partition evolution without rewriting historical data</li>
+      <li>Spark 3.0 support</li>
+    </ul>
+  </article>
+
+  <article class="release">
+    <div class="release-head">
+      <span class="release-version">0.8.0</span>
+      <span class="release-date">2019-11</span>
+    </div>
+    <ul>
+      <li>Schema evolution: add/drop/rename/reorder columns safely</li>
+      <li>Snapshot expiration and rollback APIs</li>
+      <li>Hive catalog integration</li>
+    </ul>
+  </article>
+
+  <article class="release major">
+    <div class="release-head">
+      <span class="release-version">0.7.0</span>
+      <span class="release-date">2018-12</span>
+      <span class="release-badge">First</span>
+    </div>
+    <ul>
+      <li>First Apache release after donation from Netflix</li>
+      <li>Format spec v1 - immutable data files indexed by manifests and snapshots</li>
+      <li>Spark integration for reads and appends</li>
+    </ul>
+  </article>
+
+</section>
+
+<footer>
+  Apache Iceberg<sup>™</sup>, Iceberg<sup>™</sup>, and the Apache feather logo are trademarks of The Apache Software Foundation.
+  Dates and version numbers are approximations; see <a href="https://github.com/apache/iceberg/releases" style="color:#7ab8ff;">official release notes</a> for authoritative details.
+</footer>
+
+</body>
+</html>
