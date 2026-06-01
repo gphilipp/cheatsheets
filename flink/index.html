@@ -563,6 +563,24 @@
     .overview { grid-template-columns: 1fr; padding: 16px; }
     header { padding: 20px; }
     .popup { width: min(360px, calc(100vw - 16px)); }
+    /* Project cards become a swipeable carousel on mobile */
+    .project {
+      grid-template-columns: none;
+      display: flex;
+      gap: 12px;
+      padding: 0 16px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding-left: 16px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .project::-webkit-scrollbar { display: none; }
+    .project-card {
+      flex: 0 0 88%;
+      min-width: 0;
+      scroll-snap-align: start;
+    }
   }
 </style>
 </head>
