@@ -12,6 +12,12 @@ Compact, hoverable references for distributed data systems:
 
 Each cheatsheet has a release-history page and a project-info panel (links, recent versions, headline stats).
 
+## Learn more
+
+Hovering a concept reveals a popup with a **Learn more** button. These link out to [Confluent Developer](https://developer.confluent.io) courses - free (as in free beer) video lessons that explain the concept in depth. No signup, no paywall.
+
+> **Disclosure:** I work at Confluent. The linked courses are Confluent's free educational content, chosen because they happen to be high-quality explanations of these concepts - but this is an independent side project and is not an official Confluent product.
+
 ## Running locally
 
 These are static HTML files with no build step. Open `index.html` directly, or serve the directory with any static server:
