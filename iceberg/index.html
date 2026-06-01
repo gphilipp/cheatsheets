@@ -190,6 +190,7 @@
     gap: 8px;
     pointer-events: auto;
     user-select: none;
+    touch-action: none;
   }
   .popup-controls {
     display: flex;
@@ -877,34 +878,49 @@ popup.addEventListener('mouseleave', () => scheduleHide());
 let dragging = false;
 let dragDx = 0, dragDy = 0;
 const popupHeader = popup.querySelector('.popup-header');
-popupHeader.addEventListener('mousedown', e => {
-  if (e.target.closest('button')) return;
+// Read the pointer position from either a mouse or a touch event
+function dragPoint(e) {
+  const t = e.touches && e.touches[0];
+  return t ? { x: t.clientX, y: t.clientY } : { x: e.clientX, y: e.clientY };
+}
+function startDrag(e) {
+  if (e.target.closest('button')) return; // don't start a drag from the pin/close buttons
   dragging = true;
-  if (!docked) setDocked(true);
+  if (!docked) setDocked(true); // dragging means the user wants it to stay where dropped
   cancelHide();
+  const p = dragPoint(e);
   const rect = popup.getBoundingClientRect();
-  dragDx = e.clientX - rect.left;
-  dragDy = e.clientY - rect.top;
+  dragDx = p.x - rect.left;
+  dragDy = p.y - rect.top;
   popup.classList.add('dragging');
   e.preventDefault();
-});
-document.addEventListener('mousemove', e => {
+}
+function moveDrag(e) {
   if (!dragging) return;
   const margin = 8;
   const pw = popup.offsetWidth;
   const ph = popup.offsetHeight;
-  let x = e.clientX - dragDx;
-  let y = e.clientY - dragDy;
+  const p = dragPoint(e);
+  let x = p.x - dragDx;
+  let y = p.y - dragDy;
   x = Math.max(margin, Math.min(x, window.innerWidth  - pw - margin));
   y = Math.max(margin, Math.min(y, window.innerHeight - ph - margin));
   popup.style.left = x + 'px';
   popup.style.top  = y + 'px';
-});
-document.addEventListener('mouseup', () => {
+  e.preventDefault();
+}
+function endDrag() {
   if (!dragging) return;
   dragging = false;
   popup.classList.remove('dragging');
-});
+}
+popupHeader.addEventListener('mousedown', startDrag);
+popupHeader.addEventListener('touchstart', startDrag, { passive: false });
+document.addEventListener('mousemove', moveDrag);
+document.addEventListener('touchmove', moveDrag, { passive: false });
+document.addEventListener('mouseup', endDrag);
+document.addEventListener('touchend', endDrag);
+document.addEventListener('touchcancel', endDrag);
 
 popupPin.addEventListener('click', e => {
   e.stopPropagation();
