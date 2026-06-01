@@ -561,6 +561,7 @@
     .grid { grid-template-columns: 1fr; padding: 16px; }
     .overview { grid-template-columns: 1fr; padding: 16px; }
     header { padding: 20px; }
+    .popup { width: min(360px, calc(100vw - 16px)); }
   }
 </style>
 </head>
@@ -571,7 +572,7 @@
   <div class="header-text">
     <a class="header-back" href="../">← All cheatsheets</a>
     <div class="header-title">Apache Flink<sup style="font-size:14px;opacity:0.7;margin-left:2px;">®</sup> <span>Cheatsheet</span></div>
-    <div class="header-sub">Key concepts - hover any entry for details</div>
+    <div class="header-sub">Key concepts - tap or hover any entry for details</div>
   </div>
 </header>
 
@@ -983,7 +984,6 @@ SECTIONS.forEach(sec => {
     if (entry.link) {
       row.dataset.link = entry.link;
       row.classList.add('has-link');
-      row.addEventListener('click', () => window.open(entry.link, '_blank', 'noopener'));
     }
     row.dataset.accent = sec.accent;
     row.innerHTML = `
@@ -1162,9 +1162,19 @@ function positionPopup(e) {
   popup.style.top  = y + 'px';
 }
 
+const isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
 document.querySelectorAll('.entry').forEach(row => {
-  row.addEventListener('mouseenter', e => showPopup(row, e));
-  row.addEventListener('mouseleave', () => scheduleHide());
+  if (isTouch) {
+    // On touch devices a tap shows (or updates) the popup; navigation happens
+    // via the "Learn more" link inside the popup, not by tapping the entry.
+    row.addEventListener('click', e => showPopup(row, e));
+  } else {
+    row.addEventListener('mouseenter', e => showPopup(row, e));
+    row.addEventListener('mouseleave', () => scheduleHide());
+    if (row.dataset.link) {
+      row.addEventListener('click', () => window.open(row.dataset.link, '_blank', 'noopener'));
+    }
+  }
 });
 
 // When the popup is docked it can sit on top of entries and block their mouseenter.
